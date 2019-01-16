@@ -18,7 +18,7 @@
 <p class="desc">This is a Javascript-based vocabulary generator for <abbr title="Constructed Languages">conlangs</abbr> based on
 	Mark Rosenfelder&apos;s <a href="http://www.zompist.com/gen.html">Gen</a>. Enter your syllable types in the syllable boxes,
 	using any categories you want (e.g. R for liquids). Define the phonemes that make up those categories in the categories box.
-	Hit Generate to 	create a random wordlist. Use cut and paste to save your work. Click on the small question marks
+	Hit Generate to create a random wordlist. Use cut and paste to save your work. Click on the small question marks
 	<span class="help-fake">?</span> for help, or go read through the <a href="wordgentutorial.php">tutorial</a> I wrote.
 </p>
 
@@ -63,17 +63,17 @@ CRV</textarea>
 				appear, and the generator will take them into account when generating words. Leave this checked if your syllables
 				don&apos;t have special rules as to when they appear in different parts of a word.</span></span></div></div>
 	</div>
-	<div id="p_sws">Single-word syllables:<span class="help">?<span class="info">If the generator asks for a single-syllable
+	<div id="p_sws" class="multiswap">Single-word syllables:<span class="help">?<span class="info">If the generator asks for a single-syllable
 			word (a <strong>monosyllable</strong>), it will pull a syllable from those in this box. See <strong>Word-Initial
 			Syllables</strong> for more information.</span></span><br>
 		<textarea id="sing" class="littlebox" name="sing" rows="4" cols="20"></textarea>
 	</div>
-	<div id="p_mws">Mid-word syllables:<span class="help">?<span class="info">If the generator asks for a multi-syllable word, the
+	<div id="p_mws" class="multiswap">Mid-word syllables:<span class="help">?<span class="info">If the generator asks for a multi-syllable word, the
 				syllables in this box will be used to form syllables that are neither the first nor last in the word. See
 				<strong>Word-Initial Syllables</strong> for more information.</span></span><br>
 		<textarea id="syls" class="littlebox" name="syls" rows="4" cols="20"></textarea>
 	</div>
-	<div id="p_wfs">Word-final syllables:<span class="help">?<span class="info">If the generator asks for a multi-syllable word,
+	<div id="p_wfs" class="multiswap">Word-final syllables:<span class="help">?<span class="info">If the generator asks for a multi-syllable word,
 				syllables in this box will be used for the final syllable in the word. See <strong>Word-Initial Syllables</strong>
 				for more information.</span></span><br>
 		<textarea id="wrdf" class="midbox" name="wrdf" rows="10" cols="20"></textarea>
@@ -169,7 +169,10 @@ CRV</textarea>
 			</select>
 			<span class="help">?<span class="info">Choosing a selection from the drop-down list and then clicking the <strong>Load
 			Predef</strong> button will load a set of pre-defined <strong>categories</strong>, <strong>rewrite rules</strong> and
-			<strong>syllables</strong> for you to use. Other checkboxes and options may change, too.</span></span>
+			<strong>syllables</strong> for you to use. Other checkboxes and options may change, too.
+			<br><br>
+			<em>Kartaran</em> and <em>Reemish</em> are fictional language families of my own construction. Other options should be
+			self-explanatory.</span></span>
 	</span>
 </div>
 <div id="output">
