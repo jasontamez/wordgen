@@ -5,4 +5,4 @@ Scripts starting with the double-underscore are the main scripts, while the othe
 
 <notextile><strong>__unicode.js</strong></notextile> is available via a Creative Commons Attribution 4.0 International license.
 
-<notextile><strong>__unicode.js</strong></notextile> is based on a work (C)2012 by Mark Rosenfelder, with a specific note that you can modify the code for non-commercial use.
+<notextile><strong>__wordgen.js</strong></notextile> is based on a work (C)2012 by Mark Rosenfelder, with a specific note that you can modify the code for non-commercial use.
