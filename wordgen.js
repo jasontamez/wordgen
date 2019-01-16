@@ -4,6 +4,7 @@
 // If you want to make money off it, please contact me.
 
 // Modified by Jason Tamez 2017-2019.
+// Non-minified code available here: https://github.com/jasontamez/wordgen
 
 // ==ClosureCompiler==
 // @compilation_level SIMPLE_OPTIMIZATIONS

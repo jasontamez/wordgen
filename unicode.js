@@ -2,7 +2,7 @@
 // This work is licensed under a Creative Commons Attribution 4.0 International license.
 // http://creativecommons.org/licenses/by/4.0/
 
-// Non-minified code available here:
+// Non-minified code available here: https://github.com/jasontamez/wordgen
 
 
 // ==ClosureCompiler==
