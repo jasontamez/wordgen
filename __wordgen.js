@@ -50,53 +50,59 @@ zCounter;		// Used to create IDs for help tooltips later in this script.
 
 //And that, folks, is one heck of a large VAR statement!
 
+
+// Check the input for validness.
 function readStuff() {
 
 	// Parse the category list
-	cat = $("#cats").val().split("\n");
+	cat = $("#cats").val().split(/\r?\n/);
 	ncat = cat.length;
 	badcats = false;
 
-	// Make sure cats have structure like V=aeiou
+	// Make sure categories have structure like V=aeiou
 	catindex = "";
 	var w,thiscat;
 	for (w = 0; w < ncat; w++) {
-		// A final empty cat can be ignored
+		// A final empty category can be ignored
 		thiscat = cat[w];
-		if (thiscat.charCodeAt(thiscat.length - 1) == 13) {
-			thiscat = thiscat.substr(0, thiscat .length - 1);
+		if (thiscat.charCodeAt(thiscat.length - 1) === 13) {
+			thiscat = thiscat.substr(0, thiscat.length - 1);
 			cat[w] = thiscat;
 		}
 		if (thiscat.length === 0 && w === ncat - 1) {
 			ncat--;
-		} else if (thiscat.length < 3) {
+		} else if (thiscat.length < 3 || thiscat.indexOf("=") === -1) {
 			badcats = true;
-		} else {
-			if (thiscat.indexOf("=") === -1) {
-				badcats = true;
-			} else {	
-				catindex += thiscat.charAt(0);
-			}
+		} else {	
+			catindex += thiscat.charAt(0);
 		}
 	}
 
 	// Parse the syllable lists
-	var zsyl = $("#syls").val().split("\n");
+	var zsyl = $("#syls").val().split(/\r?\n/);
 	syl = parseSyllables(zsyl);
 	nsyl = syl.length;
 
-	zsyl = $("#wrdi").val().split("\n");
+	zsyl = $("#wrdi").val().split(/\r?\n/);
 	wisyl = parseSyllables(zsyl);
 	nwisyl = wisyl.length;
 
-	zsyl = $("#wrdf").val().split("\n");
+	zsyl = $("#wrdf").val().split(/\r?\n/);
 	wfsyl = parseSyllables(zsyl);
 	nwfsyl = wfsyl.length;
 
-	zsyl = $("#sing").val().split("\n");
+	zsyl = $("#sing").val().split(/\r?\n/);
 	snsyl = parseSyllables(zsyl);
 	nsnsyl = snsyl.length;
 
+	// Parse rewrite rules
+	rew = $("#rewrite").val().split(/\r?\n/);
+	nrew = rew.length;
+	for (w = 0; w < nrew; w++) {
+		if(rew[w].indexOf("%") !== -1) {
+			rew[w] = handleCategoriesInRewriteRule(rew[w]);
+		}
+	}
 }
 
 function parseSyllables(input) {
@@ -109,6 +115,59 @@ function parseSyllables(input) {
 	}
 	return input;
 }
+
+function handleCategoriesInRewriteRule(rule) {
+	// %% converts to %.
+	// Split along those, then join with % at end.
+	var broken = rule.split("%%"),
+		rewritten = [],
+		testing,catt,chunk,bit,ind;
+	while(broken.length) {
+		// First, check for category negation.
+		// Separate into array, split along !% negations.
+		testing = broken.shift().split("!%");
+		// Save the first bit (before any !% was found) as chunk.
+		chunk = testing.shift();
+		// Check each bit one at a time.
+		while(testing.length) {
+			bit = testing.shift();
+			// What's the category being negated?
+			catt = bit.charAt(0);
+			// Is it actually a category?
+			ind = catindex.indexOf(catt);
+			if(ind !== -1) {
+				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
+				chunk += "[^" + cat[ind].substring(2) + "]";
+				// If category not found, it gets ignored.
+			}
+			// Remove category identifier, add to saved chunk.
+			chunk += bit.substring(1);
+		}
+		// Now check for categories.
+		// Separate into array, split along % markers.
+		testing = chunk.split("%");
+		// Save the first bit (before any % was found) as chunk.
+		chunk = testing.shift();
+		// Check each bit one at a time.
+		while(testing.length) {
+			bit = testing.shift();
+			// What's the category?
+			catt = bit.charAt(0);
+			// Is it actually a category?
+			ind = catindex.indexOf(catt);
+			if(ind !== -1) {
+				// Category found. Replace with [a-z] construct, where a-z is the category contents.
+				chunk += "[" + cat[ind].substring(2) + "]";
+			}
+			// If category not found, it gets ignored.
+			chunk += bit.substring(1);
+		}
+		rewritten.push(chunk);
+	}
+	return rewritten.join("%");
+}
+
+
 
 // A random percentage
 function randpct() {
@@ -390,46 +449,6 @@ function CreateAll() {
 	tempArray = [];
 }
 
-function handleCategoriesInRewriteRule(rule) {
-	// %% converts to %.
-	// Split along those, then join with % at end.
-	var broken = rule.split("%%"),
-		rewritten = [],
-		testing,catt,chunk,bit,ind;
-	while(broken.length) {
-		// First, check for category negation.
-		testing = broken.shift().split("!%");
-		chunk = testing.shift();
-		while(testing.length) {
-			bit = testing.shift();
-			catt = bit.charAt(0);
-			ind = catindex.indexOf(catt);
-			if(ind != -1) {
-				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
-				chunk += "[^" + cat[ind].substr(2) + "]";
-			}
-			// If category not found, it gets ignored.
-			chunk += bit.substr(1);
-		}
-		// Now check for categories.
-		testing = chunk.split("%");
-		chunk = testing.shift();
-		while(testing.length) {
-			bit = testing.shift();
-			catt = bit.charAt(0);
-			ind = catindex.indexOf(catt);
-			if(ind != -1) {
-				// Category found. Replace with [a-z] construct, where a-z is the category contents.
-				chunk += "[" + cat[ind].substr(2) + "]";
-			}
-			// If category not found, it gets ignored.
-			chunk += bit.substr(1);
-		}
-		rewritten.push(chunk);
-	}
-	return rewritten.join("%");
-}
-
 // User hit the action button.  Make things happen!
 function process() {
 	//Read parameters
@@ -458,13 +477,6 @@ function process() {
 
 	readStuff();
 
-	rew = $("#rewrite").val().split("\n");
-	nrew = rew.length;
-	for (w = 0; w < nrew; w++) {
-		if(rew[w].indexOf("%") != -1) {
-			rew[w] = handleCategoriesInRewriteRule(rew[w]);
-		}
-	}
 
 	// Error checking
 	if (ncat <= 0 || nsyl <= 0 || nwisyl <= 0 || nwfsyl <= 0 || nsnsyl <= 0) {
