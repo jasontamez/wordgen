@@ -25,12 +25,14 @@ wfsyl,		// Holds word-final syllables
 nwfsyl,		//  .length
 snsyl,		// Holds syllables for single-syllable words
 nsnsyl,		//  .length
+onetype,		// Holds the status of the one-type-of-syllables checkbox
 
 monosyl = 0.0,	// Rate of monosyllabic words
 dropoff = 50,	// How steep the dropoff is between one letter/syllable and the next.
 
 rew,			// Holds rewrite rules
 nrew,			//  .length
+badrew,			// Used to interpret the rules
 
 showsyl = false,	// Show syllable breaks?
 slowsyl = false,	// Slow the syllable dropoff even more?
@@ -52,34 +54,50 @@ zCounter;		// Used to create IDs for help tooltips later in this script.
 
 
 // Check the input for validness.
-function readStuff() {
-
-	// Parse the category list
+function parseAllInput() {
+	var zsyl,counter;
+	// Parse the category list.
 	cat = $("#cats").val().split(/\r?\n/);
+	// Hold on to the number of categories.
 	ncat = cat.length;
+	// Track whether or not we've encountered errors.
 	badcats = false;
 
 	// Make sure categories have structure like V=aeiou
-	catindex = "";
-	var w,thiscat;
-	for (w = 0; w < ncat; w++) {
-		// A final empty category can be ignored
-		thiscat = cat[w];
-		if (thiscat.charCodeAt(thiscat.length - 1) === 13) {
-			thiscat = thiscat.substr(0, thiscat.length - 1);
-			cat[w] = thiscat;
-		}
-		if (thiscat.length === 0 && w === ncat - 1) {
-			ncat--;
-		} else if (thiscat.length < 3 || thiscat.indexOf("=") === -1) {
-			badcats = true;
-		} else {	
-			catindex += thiscat.charAt(0);
-		}
-	}
 
-	// Parse the syllable lists
-	var zsyl = $("#syls").val().split(/\r?\n/);
+	// Set up a string with all categories.
+	catindex = "";
+	// Set up a blank array.
+	tempArray = [];
+	// Go through each category one at a time
+	cat.forEach(function(element) {
+		// Remove whitespace from element.
+		var thiscat = element.trim();
+		// Lock up the length of this category.
+		const len = thiscat.length;
+		if(len === 0) {
+			// Blank category. Ignore this.
+			ncat--;
+		} else if (len < 3 || thiscat.indexOf("=") !== 1 || thiscat.indexOf("=", 2) !== -1) {
+			// If the category doesn't have at least three characters...
+			//  OR the category doesn't have = as its second character...
+			//  OR the category has = somewhere else other than the second character...
+			// THEN this is a bad category.
+			badcats = true;
+			// Ignore it.
+			ncat--;
+		} else {
+			// Add this category to the category index.
+			catindex += thiscat.charAt(0);
+			// Save this category, it's good!
+			tempArray.push(thiscat);
+		}
+	});
+	// Replace cat with the good categories.
+	cat = tempArray;
+
+	// Parse the syllable lists.
+	zsyl = $("#syls").val().split(/\r?\n/); // zsyl is a temp variable
 	syl = parseSyllables(zsyl);
 	nsyl = syl.length;
 
@@ -95,25 +113,52 @@ function readStuff() {
 	snsyl = parseSyllables(zsyl);
 	nsnsyl = snsyl.length;
 
-	// Parse rewrite rules
-	rew = $("#rewrite").val().split(/\r?\n/);
-	nrew = rew.length;
-	for (w = 0; w < nrew; w++) {
-		if(rew[w].indexOf("%") !== -1) {
-			rew[w] = handleCategoriesInRewriteRule(rew[w]);
+	// Parse rewrite rules.
+	tempArray = $("#rewrite").val().split(/\r?\n/);
+	// Save the length of the rules.
+	nrew = tempArray.length;
+	// Set up rew as a blank object.
+	rew = new Object;
+	// Start out as if no rules are bad.
+	badrew = false;
+	// Set up a counter to give each rule a unique ID.
+	counter = 0;
+	// Go through each rule one at a time.
+	tempArray.forEach(function(rule) {
+		// Make sure each rule has two parts.
+		var replacement, separatorPosition = rule.indexOf("||");
+		if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf("||")) {
+			// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
+			nrew--;
+			// Mark that there was a bad rule.
+			badrew = true;
+		} else {
+			// Isolate the replacement.
+			replacement = rule.substring(separatorPosition + 2);
+			// Isolate the rule, and turn it into a regex pattern.
+			rule = new RegExp(rule.substring(0, separatorPosition), "g"); // for case insensitivity change "g" to "gi"
+			// Save this rule.
+			rew[counter.toString()] = [rule, replacement];
+			// Increment the counter.
+			counter++;
 		}
-	}
+	});
 }
 
+// Trim elements of whitespace and remove blank elements from given array.
 function parseSyllables(input) {
-	var t, w;
-	for (w = 0; w < input.length; w++) {
-		t = input[w];
-		if (t.charCodeAt(t.length - 1) == 13) {
-			input[w] = t.substr(0, t.length - 1);
+	var w = [];
+	// Go through each element one by one.
+	input.forEach(function(t) {
+		// Remove whitespace.
+		var trimmed = t.trim();
+		// If there is still a string there, add it to the temp array.
+		if(trimmed !== '') {
+			w.push(trimmed);
 		}
-	}
-	return input;
+	});
+	// Return the good info.
+	return w;
 }
 
 function handleCategoriesInRewriteRule(rule) {
@@ -158,49 +203,34 @@ function handleCategoriesInRewriteRule(rule) {
 			if(ind !== -1) {
 				// Category found. Replace with [a-z] construct, where a-z is the category contents.
 				chunk += "[" + cat[ind].substring(2) + "]";
+				// If category not found, it gets ignored.
 			}
-			// If category not found, it gets ignored.
+			// Remove category identifier, add to saved chunk.
 			chunk += bit.substring(1);
 		}
+		// Save chunk!
 		rewritten.push(chunk);
 	}
+	// Return this info with %% reduced back to %
 	return rewritten.join("%");
 }
 
-
-
-// A random percentage
-function randpct() {
+// Calculate a random percentage from 0% to 100%.
+function getRandomPercentage() {
+	// Math.random never returns 1, so 101 is never returned. (However, it CAN return 0!)
 	return Math.floor(Math.random()*101);
 }
 
-// Apply rewrite rules
-function rewriterules() {
-	var w,parse,regex;
+// Apply rewrite rules. 
+function applyRewriteRules(input) {
+	var w,parse;
+	// Go through each rule one by one.
 	for (w = 0; w < nrew; w++) {
-		if (rew[w].length > 2 && rew[w].indexOf("||") > 0) { // Use || so single |s can be used in regex
-			parse = rew[w].split("||");
-			// for case insensitivity change to "gi"
-			regex = new RegExp(parse[0], "g");
-			word = word.replace(regex, parse[1]);
-		}
+		// Grab the rule and replacement.
+		parse = rew[w.toString()];
+		// Apply the rule to the input with the replacement.
+		input = input.replace(parse[0], parse[1]);
 	}
-}
-
-
-// Apply rewrite rules on just one string 
-function rewriterulesStr(input) {
-
-	var w,parse,regex;
-	for (w = 0; w < nrew; w++) {
-		if (rew[w].length > 2 && rew[w].indexOf("||") > 0) {
-			parse = rew[w].split("||");
-			// for case insensitivity change to "gi"
-			regex = new RegExp(parse[0], "g");
-			input = input.replace(regex, parse[1]);
-		}
-	}
-
 	return input;
 }
 
@@ -208,14 +238,12 @@ function rewriterulesStr(input) {
 // Cheap iterative implementation of a power law:
 // our chances of staying at a bin are pct %.
 function PowerLaw(max, pct) {
-
 	var r;
-	for (r = 0; true; r = (r+1) % max) {
-		if (randpct() < pct) 
+	for (r = 0; true; r = (r+1) % max) { // The 'true' in there means this loop never ends.
+		if (getRandomPercentage() < pct) {
 			return r;
+		}
 	}
-	// Google Closure Compiler says this line is unreachable, so awaaaay it goes.
-	//return 0;
 }
 
 
@@ -292,9 +320,8 @@ function syllPatternPick(w) {
 function OneWord(capitalize) {
 	word = "";
 
-	var nw = 1,w,onetype,which;
+	var nw = 1,w,which;
 	if (Math.random() > monosyl) { nw += 1 + PowerLaw(4, 50); }
-	onetype = $("#onetype").prop("checked");
 	which = -1; // First syllable.
 	for (w = 0; w < nw ; w++) {
 		if (onetype)
@@ -321,7 +348,7 @@ function OneWord(capitalize) {
 		if (showsyl && w < nw - 1) word += "\u00b7";
 	}
 
-	rewriterules();
+	word = applyRewriteRules(word);
 
 	if (capitalize) word= word.charAt(0).toUpperCase() + word.substring(1);
 	output += word;
@@ -390,7 +417,7 @@ function genall(initial, pattern) {
 	if (ix == -1) {
 		// Not a category, just output it straight
 		if (lastOne) {
-			tempArray.push(rewriterulesStr(initial + theCat));
+			tempArray.push(applyRewriteRules(initial + theCat));
 		} else {
 			genall(initial + theCat, pattern.slice(1));
 		}
@@ -401,7 +428,7 @@ function genall(initial, pattern) {
 		for (i = 0; i < members.length; i++) {
 			m = members.charAt(i);
 			if (lastOne) {
-				tempArray.push(rewriterulesStr(initial + m));
+				tempArray.push(applyRewriteRules(initial + m));
 			} else {
 				genall(initial + m, pattern.slice(1));
 			}
@@ -456,6 +483,8 @@ function process() {
 
 	showsyl = $("#showsyl").prop("checked");
 	slowsyl = $("#slowsyl").prop("checked");
+	onetype = $("#onetype").prop("checked");
+
 
 	monosyl = Number($("input[type=radio][name=monosyl]:checked").val());
 	// x != x when x is NaN
@@ -475,15 +504,20 @@ function process() {
 	// Stuff we can do once
 	output = "";
 
-	readStuff();
-
+	// Parse all those boxes.
+	parseAllInput();
 
 	// Error checking
-	if (ncat <= 0 || nsyl <= 0 || nwisyl <= 0 || nwfsyl <= 0 || nsnsyl <= 0) {
+	if (onetype && (ncat <= 0 || nwisyl <= 0)) {
+		output = "You must have categories and syllable types to generate text."
+	} else if (!onetype && (ncat <= 0 || nsyl <= 0 || nwisyl <= 0 || nwfsyl <= 0 || nsnsyl <= 0)) {
 		output = "You must have categories and all syllable types to generate text.";
 	} else if (badcats) {
 		output = "Categories must be of the form V=aeiou<br>" +
 		"That is, a single letter, an equal sign, then a list of possible expansions.";
+	} else if (badrew) {
+		output = "Rewrite rules must be in the form x||y<br>" +
+		"That is, a rule (x), followed by two vertical bars, followed by a replacement expression (y, which may be blank).";
 	} else {
 		// Actually generate text
 		switch (whichWay) {
@@ -920,4 +954,3 @@ $(document).ready(function() {
 		}
 	});
 });
-

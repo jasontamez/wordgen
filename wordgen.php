@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+<?php
+// Send off the last-modified time for this page.
+date_default_timezone_set("UTC");
+$x = getlastmod();
+header("Last-Modified: ".date(DATE_RFC1123, $x));
+
+?><!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -192,4 +198,3 @@ CRV</textarea>
 <script src="js/wordgen.js"></script>
 </body>
 </html>
-
