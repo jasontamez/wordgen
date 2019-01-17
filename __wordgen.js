@@ -50,13 +50,6 @@ zCounter;		// Used to create IDs for help tooltips later in this script.
 
 //And that, folks, is one heck of a large VAR statement!
 
-function find(input, ch) {
-     for (var i = 0; i < input.length; i++) { 
-         if (input.charAt(i) == ch) { return i; } 
-     } 
-     return -1; 
-}
-
 function readStuff() {
 
 	// Parse the category list
@@ -74,12 +67,12 @@ function readStuff() {
 			thiscat = thiscat.substr(0, thiscat .length - 1);
 			cat[w] = thiscat;
 		}
-		if (thiscat.length === 0 && w == ncat - 1) {
+		if (thiscat.length === 0 && w === ncat - 1) {
 			ncat--;
 		} else if (thiscat.length < 3) {
 			badcats = true;
 		} else {
-			if (find(thiscat , "=") == -1) {
+			if (thiscat.indexOf("=") === -1) {
 				badcats = true;
 			} else {	
 				catindex += thiscat.charAt(0);
@@ -187,7 +180,7 @@ function Syllable(which) {
 	for (c = 0; c < pattern.length; c++) {
 		theCat = pattern.charAt(c);
 		// Go find it in the categories list
-		ix = find(catindex, theCat);
+		ix = catindex.indexOf(theCat);
 		if (ix == -1) {
 			// Not found: output syllable directly
 			word += theCat;
@@ -334,7 +327,7 @@ function genall(initial, pattern) {
 		ix,i,m,members;
 
 	// Find category
-	ix = find(catindex, theCat);
+	ix = catindex.indexOf(theCat);
 	if (ix == -1) {
 		// Not a category, just output it straight
 		if (lastOne) {
@@ -410,7 +403,7 @@ function handleCategoriesInRewriteRule(rule) {
 		while(testing.length) {
 			bit = testing.shift();
 			catt = bit.charAt(0);
-			ind = find(catindex, catt);
+			ind = catindex.indexOf(catt);
 			if(ind != -1) {
 				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
 				chunk += "[^" + cat[ind].substr(2) + "]";
@@ -424,7 +417,7 @@ function handleCategoriesInRewriteRule(rule) {
 		while(testing.length) {
 			bit = testing.shift();
 			catt = bit.charAt(0);
-			ind = find(catindex, catt);
+			ind = catindex.indexOf(catt);
 			if(ind != -1) {
 				// Category found. Replace with [a-z] construct, where a-z is the category contents.
 				chunk += "[" + cat[ind].substr(2) + "]";
