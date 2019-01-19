@@ -9,9 +9,9 @@
 var nLexTotal  = 150,	// Number of words in a lexicon
 nSentences = 30,		// Number of sentences in a text
 
-previousCat = false,	// Holds previous categories, to save processing
 cat,					// Used to interpret the categories
-ncat,						// (see above)
+ncat,						//  .length
+previousCat = false,	// Holds previous categories, to save processing
 syl,					// Holds mid-word syllables
 nsyl,						//  .length
 wisyl,					// Holds word-initial syllables
@@ -25,10 +25,9 @@ previousWisyl = false,
 previousWfsyl = false,
 previousSnsyl = false,	// These four hold previous syllable boxes, to save processing
 
-previousRew = false,	// Holds previous rewrite rules, to save processing
 rew,					// Holds rewrite rules
 nrew,					//  .length
-badrew,					// Used to interpret the rules
+previousRew = false,	// Holds previous rewrite rules, to save processing
 
 CustomInfo = false,		// Used by Defaults to check localStorage for saved info.
 Customizable = false,	// Used to indicate that saving is possible.
@@ -128,7 +127,11 @@ function getRandomPercentage() {
 
 
 // Cheap iterative implementation of a power law:
-// our chances of staying at a bin are pct %.
+//   Returns a number from 0 to max, favoring the lower end.
+//   1) Counter starts at zero, and we grab a random percentage.
+//   2) If the random percentage is less than pct, return the value of the counter.
+//   3) Otherwise, increment counter and try again.
+//   4) If counter becomes equal to max, reset it to 0.
 function powerLaw(max, pct) {
 	var r;
 	for (r = 0; true; r = (r+1) % max) { // The 'true' in there means this loop never ends on its own.
@@ -137,7 +140,6 @@ function powerLaw(max, pct) {
 		}
 	}
 }
-
 
 // Similar, but there's a peak at mode.
 function peakedPowerLaw(max, mode, pct) {
@@ -151,9 +153,9 @@ function peakedPowerLaw(max, mode, pct) {
 }
 
 // Output a single syllable - this is the guts of the program 
-function oneSyllable(word, which, dropoff) {
+function oneSyllable(word, which, dropoff, slowsyl) {
 	// Choose the pattern
-	var pattern = syllPatternPick(which),c,theCat,ix,expansion,r2,ch;
+	var pattern = syllPatternPick(which, slowsyl),c,theCat,expansion,r2,ch;
 
 	// For each letter in the pattern, find the category
 	for (c = 0; c < pattern.length; c++) {
@@ -179,66 +181,73 @@ function oneSyllable(word, which, dropoff) {
 	return word;
 }
 
-function syllPatternPick(w) {
-	var x,y,r;
-	switch (w)
-	{
+function syllPatternPick(which, slowsyl) {
+	var n,s;
+	switch (which) {
 		case -1:
 			// First syllable
-			x = nwisyl;
-			y = wisyl;
+			n = nwisyl;
+			s = wisyl;
 			break;
 		case 0:
 			// Middle syllable
-			x = nsyl;
-			y = syl;
+			n = nsyl;
+			s = syl;
 			break;
 		case 1:
 			// Last syllable
-			x = nwfsyl;
-			y = wfsyl;
+			n = nwfsyl;
+			s = wfsyl;
 			break;
 		case 2:
 			// Only syllable
-			x = nsnsyl;
-			y = snsyl;
+			n = nsnsyl;
+			s = snsyl;
 			break;
 	}
-	r = powerLaw(x, calcDropoff(x));
-	return y[r];
+	return s[powerLaw(n, calcDropoff(n, slowsyl))];
 }
 
 // Output a single word
-function getOneWord(capitalize, monosyl, onetype, showsyl, dropoff) {
-	var nw = 1,w,which,word = "";
+function getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
+	var numberOfSyllables = 1,currentSyllable,whichBox,word = "";
+	// Determine if we're making a one-syllable word.
 	if (Math.random() > monosyl) {
-		nw += 1 + powerLaw(4, 50);
+		// We've got word with 2-6 syllables.
+		numberOfSyllables += 1 + powerLaw(4, 50);
 	}
-	which = -1; // First syllable.
-	for (w = 0; w < nw ; w++) {
-		if (onetype) {
-			// Only use word-initial syllable box.
-			which = -1;
-		} else if(nw === 1) {
-			// Only one syllable.
-			which = 2;
-		} else if(w > 0) {
-			// Final syllable.
-			which = 1;
-			if(w < nw - 1) {
-				// Not final syllable.
-				which = 0;
+	// Check if we're a monosyllable word.
+	if(numberOfSyllables === 1) {
+		word = oneSyllable("", onetype ? -1 : 2, dropoff, slowsyl);
+	} else {
+		// We're a polysyllabic word.
+		for (currentSyllable = 1; currentSyllable <= numberOfSyllables; currentSyllable++) {
+			if (onetype || currentSyllable === 1) {
+				// Either one syllable box only, or we're in the first syllable.
+				whichBox = -1;
+			} else if(currentSyllable > 1) {
+				// Not the first syllable...
+				if(currentSyllable < numberOfSyllables) {
+					// Not final syllable.
+					whichBox = 0;
+				} else {
+					// Final syllable.
+					whichBox = 1;
+				}
+			}
+			word = oneSyllable(word, whichBox, dropoff, slowsyl);
+			// Add syllable-separator mark (if we're between syllables and if it's asked for).
+			if (showsyl && currentSyllable < numberOfSyllables) {
+				word += "\u00b7";
 			}
 		}
-		word = oneSyllable(word, which, dropoff);
-		// Add syllable-separator mark (if asked for).
-		if (showsyl && w < nw - 1) {
-			word += "\u00b7";
-		}
 	}
+	
 
+	// Apply rewrite rules to the completed word.
 	word = applyRewriteRules(word);
 
+	// Capitalize if asked for.
 	if (capitalize) {
 		word= word.charAt(0).toUpperCase() + word.substring(1);
 	}
@@ -246,13 +255,13 @@ function getOneWord(capitalize, monosyl, onetype, showsyl, dropoff) {
 }
 
 // Output a pseudo-text.
-function createText(monosyl, onetype, showsyl, dropoff) {
+function createText(monosyl, onetype, showsyl, dropoff, slowsyl) {
 	var sent, w, nWord, output = "";
 	for (sent = 0; sent < nSentences; sent++) {
 		nWord = 1 + peakedPowerLaw(15, 5, 50); 
 		for (w = 0; w < nWord; w++) {
 
-			output += getOneWord(w === 0, monosyl, onetype, showsyl, dropoff);
+			output += getOneWord(w === 0, monosyl, onetype, showsyl, dropoff, slowsyl);
 
 			if (w === nWord - 1) {
 				output += ".....?!".charAt(Math.floor(Math.random() * 7));
@@ -264,13 +273,13 @@ function createText(monosyl, onetype, showsyl, dropoff) {
 }
 
 // Create a list of nLexTotal words
-function createLex(capitalize, monosyl, onetype, showsyl, dropoff) {
+function createLex(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
 	var w,output = "<div class=\"lexicon\"><table>\n";
 	for (w = 0; w < nLexTotal; w++) {
 		if (w % 10 === 0) {
 			output += "<tr>";
 		}
-		output += "<td>" + getOneWord(capitalize, monosyl, onetype, showsyl, dropoff) + "</td>";
+		output += "<td>" + getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) + "</td>";
 		if (w % 10 === 9) {
 			output += "</tr>\n";
 		}
@@ -280,10 +289,10 @@ function createLex(capitalize, monosyl, onetype, showsyl, dropoff) {
 }
 
 // Create a list of nLexTotal * 5 words
-function createLongLex(monosyl, onetype, showsyl, dropoff) {
+function createLongLex(monosyl, onetype, showsyl, dropoff, slowsyl) {
 	var w, output="";
 	for (w = 0; w < nLexTotal * 5; w++) {
-		output += getOneWord(false, monosyl, onetype, showsyl, dropoff) + "<br>\n";
+		output += getOneWord(false, monosyl, onetype, showsyl, dropoff, slowsyl) + "<br>\n";
 	}
 	return output;
 }
@@ -494,8 +503,9 @@ function process() {
 			} else {
 				// Isolate the replacement.
 				replacement = rule.substring(separatorPosition + 2);
-				// Isolate the rule, and turn it into a regex pattern.
-				rule = new RegExp(rule.substring(0, separatorPosition), "g"); // for case insensitivity change "g" to "gi"
+				// Isolate the rule, convert %Category expressions, and turn it into a regex pattern.
+				rule = handleCategoriesInRewriteRule(rule.substring(0, separatorPosition));
+				rule = new RegExp(rule, "g"); // for case insensitivity change "g" to "gi"
 				// Save this rule.
 				rew[counter.toString()] = [rule, replacement];
 				// Increment the counter.
@@ -530,19 +540,19 @@ function process() {
 		// Actually generate text.
 		switch (whichWay) {
 			case "text":
-				output = createText(monosyl, onetype, showsyl, dropoff);
+				output = createText(monosyl, onetype, showsyl, dropoff, slowsyl);		// pseudo-text
 				break;
 			case "dict":
-				output = createLex(false, monosyl, onetype, showsyl, dropoff);
+				output = createLex(false, monosyl, onetype, showsyl, dropoff, slowsyl);	// lexicon
 				break;
 			case "dictC":
-				output = createLex(true, monosyl, onetype, showsyl, dropoff);
+				output = createLex(true, monosyl, onetype, showsyl, dropoff, slowsyl);	// capitalized lexicon
 				break;
 			case "longdict":
-				output = createLongLex(monosyl, onetype, showsyl, dropoff);
+				output = createLongLex(monosyl, onetype, showsyl, dropoff, slowsyl);	// large lexicon
 				break;
 			case "genall":
-				output = getEverySyllable();
+				output = getEverySyllable();											// all possible syllables
 		}
 	}
 
@@ -550,60 +560,72 @@ function process() {
 	$("#outputText").html(output);
 }
 
-function calcDropoff(num) {
-	// Syllable dropoff
+// Calculate syllable dropoff percentage rate, based on the maximum number of candidates.
+function calcDropoff(lengthOfCandidates, slowsyl) {
+	if (lengthOfCandidates === 1) {
+		// Only one candidate? It's auto-chosen.
+		return 101;
+	}
+	// If we're slowing down the rate (making it less likely an earlier candidate is chosen), return a smaller value.
 	if (slowsyl) {
-		if (num === 2)
-		{
-			return 50;
+		switch(lengthOfCandidates) {
+			case 2:
+				return 50;
+			case 3:
+				return 40;
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+			case 9:
+				return 46 - lengthOfCandidates * 4;
+			default:
+				return 9;
 		}
-		if (num === 3)
-		{
-			return 40;
-		}
-		if (num < 9)
-		{
-			return 46 - num * 4;
-		}
-		return 11;
  	}
-	if (num < 9) {
-		return 60 - num * 5;
+	if (lengthOfCandidates < 9) {
+		return 60 - lengthOfCandidates * 5;
 	}
 	return 12;
 }
 
+// Simple function erases all output.
 function erase() {
 	$("#outputText").html("");
 }
 
+// Reset boxes to empty and some checkboxes to certain default values.
 function clearBoxes() {
 	$("#cats,#wrdi,#syls,#sing,#wrdf,#rewrite").val(""); // boxes
 	$("#monoLessFrequent,#dropoffMedium,#textOutput").prop("checked", true); // radio
-	//$("#onetype").prop("checked", true); // checkbox
-	//$("#showsyl,#slowsyl,#onetype").prop("checked", false); // checkbox
 	$("#showsyl,#slowsyl").prop("checked", false); // checkbox
 	$("#defaultName").text("");
 }
 
+// Simple function sets up the import/export screen.
 function prepImport() {
 	$("#importBoxArea").show();
 	$("body").css("overflow", "hidden");
 }
 
+// Simple function clears input/export box and removes that screen.
 function removeImportBox() {
 	$("#importTextBox").val("");
 	$("#importBoxArea").hide();
 	$("body").css("overflow", "auto");
 }
 
+// Parse input to import.
 function doImport() {
+	// The imported info must match the following pattern.
 	var patt = /--CATS--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ ]+)/,
 		toImport = $("#importTextBox").val(),
 		m = patt.exec(toImport);
 	if(m === null) {
 		return alert("Incorrect format.");
 	}
+	// Apply imported info to the boxes and checkboxes.
 	$("#cats").val(m[1]);
 	$("#rewrite").val(m[2]);
 	$("#sing").val(m[3]);
@@ -614,13 +636,15 @@ function doImport() {
 	$("#slowsyl").prop("checked", ((m[8] === "0") ? false : true));
 	$("#" + m[9]).prop("checked", true);
 	$("#" + m[10]).prop("checked", true);
+	// Hide/show boxes if needed.
 	syllablicChangeDetection($("#onetype")[0]);
+	// Announce success.
 	alert("Import Successful!");
-	$("#importTextBox").val("");
-	$("#importBoxArea").hide();
-	$("body").css("overflow", "auto");
+	// Clear the import stuff.
+	removeImportBox();
 }
 
+// Create an importable text file continaing all current info.
 function doExport() {
 	var toExport = "--CATS--\n" + $("#cats").val() +
 		"\n--REWRITE--\n" + $("#rewrite").val() +
@@ -633,9 +657,11 @@ function doExport() {
 		($("#slowsyl").prop("checked") ? "1" : "0") + " " +
 		$("input[name=monosyl]:checked").attr("id") + " " +
 		$("input[name=dropoff]:checked").attr("id");
+	// Put tht info in the box.
 	$("#importTextBox").val(toExport);
-	$("#importBoxArea").show();
-	$("body").css("overflow", "hidden");
+	// Show the box (and everything else).
+	prepImport();
+	// Give success message and instructions.
 	alert("Export Successful. Copy this for your own records.\n\nHit 'Cancel' when you're done.");
 }
 
@@ -658,15 +684,19 @@ function saveCustom() {
 	localStorage.setItem("CustomSlowsyl",	$("#slowsyl").prop("checked"));
 	localStorage.setItem("CustomMono",	$("input[name=monosyl]:checked").attr("id"));
 	localStorage.setItem("CustomDropoff",	$("input[name=dropoff]:checked").attr("id"));
-
 	CustomInfo = true;
+
+	// Check for the "Custom" predef option and add it if needed.
 	if($("#predef option[value=-1]").length < 1) {
 		$("#predef").prepend('<option value="-1">Custom</option>');
 	}
+	// Set predef drop-down to Custom.
 	$("#predef").val("-1");
+	// Alert success.
 	alert("Saved to browser.");
 }
 
+// Remove stored information from the browser.
 function clearCustom() {
 	if(!Customizable) {
 		alert("Your browser does not support Local Storage and cannot save your information.");
@@ -675,26 +705,32 @@ function clearCustom() {
 		alert("You don't have anything saved.");
 		return;
 	} else if (!confirm("Are you sure you want to delete your saved settings?")) {
-		alert("Settings saved.");
+		alert("Settings kept.");
 		return;
 	}
+	// Clear storage.
 	window.localStorage.clear();
 	CustomInfo = false;
+	// Remove "Custom" from drop-down menu.
 	$("#predef option[value=-1]").remove();
+	// Alert success.
 	alert("Cleared from browser.");
 }
 
-// Display the IPA
+// Display the IPA and other stuff.
 function showipa() {
 	var	word = '<span class="desc">Latin:</span>' + "\n" + '<div class="extraGroup">',
 		frst = [ 0x00a1, 0x00bf, 0x00d8, 0x00f8, 0x2c60, 0xa722, 0xa78b, 0xa7b0, 0xab30, 0xab60, "x",   0x0250, "x",                0x0370, 0x0376, 0x037a, 0x0386, 0x0388, 0x038c, 0x038e, 0x03a3, 0xab65, "x",        0x0400, 0x048a, 0xa640, 0xa680, "x",        0x0531, 0x0561 ],
 		last = [ 0x00a1, 0x00d6, 0x00f6, 0x024f, 0x2c7f, 0xa787, 0xa7ad, 0xa7b7, 0xab5a, 0xab64, "IPA", 0x02ff, "Greek and Coptic", 0x0373, 0x0377, 0x037f, 0x0386, 0x038a, 0x038c, 0x03a1, 0x03ff, 0xab65, "Cyrillic", 0x0482, 0x052f, 0xa66e, 0xa69b, "Armenian", 0x0556, 0x0587 ],
 		i, j, len;
 	for (i = 0, len = frst.length; i < len; i++) {
+		// If we detect an "x", then last[x] has a new category name to display.
 		if (frst[i] === "x") {
 			word += "</div>\n" + '<br><br><span class="desc">' + last[i] + ":</span>\n" + '<div class="extraGroup">';
 		} else {
+			// Displaying entities numerically numbered in Unicode from frst[x] to last[x].
 			for (j = frst[i]; j <= last[i]; j++) {
+				// getUnicodeName is defined in a separate unicode.js script.
 				word += '<span title="'+ j + ': ' + getUnicodeName(j) + '">' + String.fromCharCode(j) + "</span>";
 			}
 		}
@@ -703,13 +739,13 @@ function showipa() {
 	$("#outputText").html(word);
 }
 
-// Advanced Options open/close
+// Open/close the Advanced Options block.
 function advancedOptions() {
 	$("#advancedOpen").toggleClass("closed");
 }
 
-// Defaults
-function defaultme(defN) {
+// This loads the selected Predefs into the boxes and checkboxes.
+function loadThisPredef(defN) {
 	switch (defN) {
 		case -1:// Custom Info
 			if(CustomInfo) {
@@ -724,10 +760,11 @@ function defaultme(defN) {
 				$("#" + localStorage.getItem("CustomMono")).prop("checked", true);
 				$("#" + localStorage.getItem("CustomDropoff")).prop("checked", true);
 			} else {
-				defaultme(0);
+				// Trigger the default action.
+				loadThisPredef(0);
 			}
 			break;
-		case 1: // Original default
+		case 1: // Starter (original default)
 			$("#cats").val("C=ptkbdg\nR=rl\nV=ieaou");
 			$("#wrdi").val("CV\nV\nCRV");
 			$("#syls,#sing,#wrdf").val("");
@@ -827,12 +864,13 @@ function defaultme(defN) {
 }
 
 
-//Predefs
+// Check the current value of the drop-down menu and send it along to loadThisPredef.
 function loadPredef() {
 	var predef = $("#predef").val();
-	defaultme(Number(predef));
+	loadThisPredef(Number(predef));
 }
 
+// If the "one type of syllables" box is [un]checked, change which boxes are visible.
 function syllablicChangeDetection(what)  {
 	if(what.checked) {
 		$("#p_multi,.multiswap").hide();
@@ -843,121 +881,133 @@ function syllablicChangeDetection(what)  {
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+// Check for localStorage.
+if(typeof(Storage) !== "undefined") {
+	// Make this known to other functions.
+	Customizable = true;
+	// Check if we have info stored. If so, load it up.
+	if(localStorage.getItem("CustomCats") !== null) {
+		CustomInfo = true;
+		// Set drop-down menu to the custom info.
+		$("#predef").prepend('<option value="-1">Custom</option>');
+		$("#predef").val("-1");
+		loadThisPredef(-1);
+	}
+}
+
+// Toggle boxes when "one type of syllable" box is [un]checked.
+$("#onetype").change(function() { syllablicChangeDetection($("#onetype")[0]); });
+// Fire it right now.
+syllablicChangeDetection($("#onetype")[0]);
+
+// Set counter for tooltips, thus giving each a unique ID.
 zCounter = 1;
-$(document).ready(function() {
-	// Check for localStorage.
-	if(typeof(Storage) !== "undefined") {
-		Customizable = true;
-		if(localStorage.getItem("CustomCats") !== null) {
-			CustomInfo = true;
-			// Set default to the custom info.
-			$("#predef").prepend('<option value="-1">Custom</option>');
-			$("#predef").val("-1");
-			defaultme(-1);
+// Set up help tooltips as needed.
+$(".help").click(function() {
+	var info = $(this).find("span.info");
+	var lleft, iw, ww, rt, offset, helppp, popped;
+	if($(this).hasClass("popOut")) {
+		//
+		// Handle tooltips from the Advanced Options
+		popped = $(this).attr("data-clicked");
+		if(typeof popped !== "undefined") {
+			// data-clicked is defined? Then we've been clicked. Remove the tooltip.
+			$("#" + popped).remove();
+			// Remove the stored info.
+			$(this).removeAttr("data-clicked");
+		} else {
+			// data-clicked isn't defined? Then create a tooltip.
+			// We can't simply show the tooltip box, since it's constrained by the flex container.
+			offset = $(this).offset();
+			helppp = info.html();
+			// Create an ID to remember this by, using the ever-increased zCounter.
+			++zCounter;
+			popped = "popup" + zCounter;
+			// Store that ID on the question mark.
+			$(this).attr("data-clicked", popped);
+			// Create new tooltip node.
+			$("body").append('<div class="info" id="' + popped + '"></div>');
+			// Select the new node
+			info = $("#" + popped);
+			// Set it up.
+			info.toggle();
+			// Check to see if we're going to go off the edge of the window.
+			lleft = offset.left;
+			iw = info.width() + 20;       // Width of info box (plus padding)
+			ww = $(document).width();     // Window width
+			rt = lleft + $(this).width(); // Starting left position
+			if((rt + iw) > ww) {
+				// Close to right edge of window.
+				if(rt <= iw) {
+					// Close to left edge, too. Calculate best fit.
+					if(ww <= iw) {
+						lleft -= rt;
+						lleft += 2;
+					} else {
+						lleft += (ww - (rt + iw));
+						lleft -= 3;
+					}
+				} else {
+					// Just move it left.
+					lleft -= iw;
+				}
+			}
+			info.html(helppp).css({"z-index": zCounter, "top": offset.top + 10, "left": lleft} );
+			info.click(function() {
+				// Delete the stored info from the parent question mark.
+				$('span[data-clicked="' + $(this).attr("id") + '"]').removeAttr("data-clicked");
+				// Remove this.
+				$(this).remove();
+			});
+		}
+	} else {
+		//
+		// Handle tooltips in main body
+		info.toggle();
+		info.css("transform", "translateX(0px)");
+		if(info.is(":visible")) {
+			++zCounter;
+			info.css("z-index", zCounter);
+			iw = info.width() + 20;             // Width of info box (plus padding)
+			ww = $(document).width();           // Window width
+			offset = $(this).offset();
+			rt = offset.left + $(this).width(); // Starting left position
+			if((rt + iw) > ww) {
+				// Close to right edge of window.
+				if(rt <= iw) {
+					// Close to left edge of window, too!
+					// Calculate best fit.
+					if(ww <= iw) {
+						// WHY would your window be so small??
+						// Push it to the left edge. Hope we can scroll.
+						//	0 - (rt - 2)
+						//	0 - rt + 2
+						//	2 - rt
+						info.css("transform", "translateX(" + (2 - rt) + "px)");
+					} else {
+						// Moving it left 'iw' pushes it off the left edge.
+						// Leaving it pushes it off the right edge by '(ww - (rt + iw))' pixels.
+						// So move it leftward '(ww - (rt + iw))' and add a bit of padding
+						// Should leave it just off the right edge!
+						//	ww - (rt + iw)
+						//	ww - rt - iw
+						info.css("transform", "translateX(" + (ww - rt - iw) + "px)");
+					}
+				} else {
+					// To the left, to the left. Every tool you tip, in a box to the left.
+					info.css("transform", "translateX(" + (0 - iw) + "px)");
+				}
+			}
 		}
 	}
-
-	// Set up p_multi toggle
-	$("#onetype").change(function() { syllablicChangeDetection($("#onetype")[0]); });
-	syllablicChangeDetection($("#onetype")[0]);
-
-	// Set up help tooltips
-	$(".help").click(function() {
-		var info = $(this).find("span.info");
-		var lleft, iw, ww, rt, offset, helppp, popped;
-		if($(this).hasClass("popOut")) {
-			//
-			// Handle tooltips from the Advanced Options
-			popped = $(this).attr("data-clicked");
-			if(typeof popped !== "undefined") {
-				// data-clicked is defined? Then we've been clicked. Remove the tooltip.
-				$("#" + popped).remove();
-				// Remove the stored info.
-				$(this).removeAttr("data-clicked");
-			} else {
-				// data-clicked isn't defined? Then create a tooltip.
-				// We can't simply show the tooltip box, since it's constrained by the flex container.
-				offset = $(this).offset();
-				helppp = info.html();
-				// Create an ID to remember this by, using the ever-increased zCounter.
-				++zCounter;
-				popped = "popup" + zCounter;
-				// Store that ID on the question mark.
-				$(this).attr("data-clicked", popped);
-				// Create new tooltip node.
-				$("body").append('<div class="info" id="' + popped + '"></div>');
-				// Select the new node
-				info = $("#" + popped);
-				// Set it up.
-				info.toggle();
-				// Check to see if we're going to go off the edge of the window.
-				lleft = offset.left;
-				iw = info.width() + 20;       // Width of info box (plus padding)
-				ww = $(document).width();     // Window width
-				rt = lleft + $(this).width(); // Starting left position
-				if((rt + iw) > ww) {
-					// Close to right edge of window.
-					if(rt <= iw) {
-						// Close to left edge, too. Calculate best fit.
-						if(ww <= iw) {
-							lleft -= rt;
-							lleft += 2;
-						} else {
-							lleft += (ww - (rt + iw));
-							lleft -= 3;
-						}
-					} else {
-						// Just move it left.
-						lleft -= iw;
-					}
-				}
-				info.html(helppp).css({"z-index": zCounter, "top": offset.top + 10, "left": lleft} );
-				info.click(function() {
-					// Delete the stored info from the parent question mark.
-					$('span[data-clicked="' + $(this).attr("id") + '"]').removeAttr("data-clicked");
-					// Remove this.
-					$(this).remove();
-				});
-			}
-		} else {
-			//
-			// Handle tooltips in main body
-			info.toggle();
-			info.css("transform", "translateX(0px)");
-			if(info.is(":visible")) {
-				++zCounter;
-				info.css("z-index", zCounter);
-				iw = info.width() + 20;             // Width of info box (plus padding)
-				ww = $(document).width();           // Window width
-				offset = $(this).offset();
-				rt = offset.left + $(this).width(); // Starting left position
-				if((rt + iw) > ww) {
-					// Close to right edge of window.
-					if(rt <= iw) {
-						// Close to left edge of window, too!
-						// Calculate best fit.
-						if(ww <= iw) {
-							// WHY would your window be so small??
-							// Push it to the left edge. Hope we can scroll.
-							//	0 - (rt - 2)
-							//	0 - rt + 2
-							//	2 - rt
-							info.css("transform", "translateX(" + (2 - rt) + "px)");
-						} else {
-							// Moving it left 'iw' pushes it off the left edge.
-							// Leaving it pushes it off the right edge by '(ww - (rt + iw))' pixels.
-							// So move it leftward '(ww - (rt + iw))' and add a bit of padding
-							// Should leave it just off the right edge!
-							//	ww - (rt + iw)
-							//	ww - rt - iw
-							info.css("transform", "translateX(" + (ww - rt - iw) + "px)");
-						}
-					} else {
-						// To the left, to the left. Every tool you tip, in a box to the left.
-						info.css("transform", "translateX(" + (0 - iw) + "px)");
-					}
-				}
-			}
-		}
-	});
 });
