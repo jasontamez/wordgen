@@ -746,6 +746,35 @@ function advancedOptions() {
 
 // This loads the selected Predefs into the boxes and checkboxes.
 function loadThisPredef(defN) {
+	// A lot of this uses String.fromCharCode() because my original editor didn't support enough Unicode.
+	// I still feel it's safer to keep it that way.
+	// Leaving comments with decimal number, hex number, the character itself, and the Unicode name.
+	//	226	0x00E2	â	LATIN SMALL LETTER A WITH CIRCUMFLEX
+	//	234	0x00EA	ê	LATIN SMALL LETTER E WITH CIRCUMFLEX
+	//	241	0x00F1	ñ	LATIN SMALL LETTER N WITH TILDE
+	//	244	0x00F4	ô	LATIN SMALL LETTER O WITH CIRCUMFLEX
+	//	246	0x00F6	ö	LATIN SMALL LETTER O WITH DIAERESIS
+	//	252	0x00FC	ü	LATIN SMALL LETTER U WITH DIAERESIS
+	//	257	0x0101	ā	LATIN SMALL LETTER A WITH MACRON
+	//	269	0x010D	č	LATIN SMALL LETTER C WITH CARON
+	//	275	0x0113	ē	LATIN SMALL LETTER E WITH MACRON
+	//	299	0x012B	ī	LATIN SMALL LETTER I WITH MACRON
+	//	301	0x012D	ĭ	LATIN SMALL LETTER I WITH BREVE
+	//	314	0x013A	ĺ	LATIN SMALL LETTER L WITH ACUTE
+	//	324	0x0144	ń	LATIN SMALL LETTER N WITH ACUTE
+	//	330	0x014A	Ŋ	LATIN CAPITAL LETTER ENG
+	//	331	0x014B	ŋ	LATIN SMALL LETTER ENG
+	//	333	0x014D	ō	LATIN SMALL LETTER O WITH MACRON
+	//	347	0x015B	ś	LATIN SMALL LETTER S WITH ACUTE
+	//	353	0x0161	š	LATIN SMALL LETTER S WITH CARON
+	//	363	0x016B	ū	LATIN SMALL LETTER U WITH MACRON
+	//	382	0x017E	ž	LATIN SMALL LETTER Z WITH CARON
+	//	450	0x01C2	ǂ	LATIN LETTER ALVEOLAR CLICK
+	//	451	0x01C3	ǃ	LATIN LETTER RETROFLEX CLICK
+	//	654	0x028E	ʎ	LATIN SMALL LETTER TURNED Y
+	//	664	0x0298	ʘ	LATIN LETTER BILABIAL CLICK
+	//	688	0x02B0	ʰ	MODIFIER LETTER SMALL H
+	//	769	0x0301	◌́ 	COMBINING ACUTE ACCENT
 	switch (defN) {
 		case -1:// Custom Info
 			if(CustomInfo) {
@@ -910,59 +939,59 @@ $("#onetype").change(function() { syllablicChangeDetection($("#onetype")[0]); })
 // Fire it right now.
 syllablicChangeDetection($("#onetype")[0]);
 
-// Set counter for tooltips, thus giving each a unique ID.
+// Set counter for tooltips, thus giving each a unique ID and an ever-increasing z-index.
 zCounter = 1;
 // Set up help tooltips as needed.
 $(".help").click(function() {
-	var info = $(this).find("span.info");
-	var lleft, iw, ww, rt, offset, helppp, popped;
+	var info = $(this).find("span.info"), leftOffset, infoWidth, windowWidth, leftPosition, offsetObject, helpHTML, tooltipID;
 	if($(this).hasClass("popOut")) {
 		//
-		// Handle tooltips from the Advanced Options
-		popped = $(this).attr("data-clicked");
-		if(typeof popped !== "undefined") {
+		// Handle tooltips from the Advanced Options.
+		//
+		tooltipID = $(this).attr("data-clicked");
+		if(typeof tooltipID !== "undefined") {
 			// data-clicked is defined? Then we've been clicked. Remove the tooltip.
-			$("#" + popped).remove();
+			$("#" + tooltipID).remove();
 			// Remove the stored info.
 			$(this).removeAttr("data-clicked");
 		} else {
 			// data-clicked isn't defined? Then create a tooltip.
 			// We can't simply show the tooltip box, since it's constrained by the flex container.
-			offset = $(this).offset();
-			helppp = info.html();
+			offsetObject = $(this).offset();
+			helpHTML = info.html();
 			// Create an ID to remember this by, using the ever-increased zCounter.
 			++zCounter;
-			popped = "popup" + zCounter;
+			tooltipID = "popup" + zCounter;
 			// Store that ID on the question mark.
-			$(this).attr("data-clicked", popped);
+			$(this).attr("data-clicked", tooltipID);
 			// Create new tooltip node.
-			$("body").append('<div class="info" id="' + popped + '"></div>');
-			// Select the new node
-			info = $("#" + popped);
-			// Set it up.
+			$("body").append("<div class=\"info\" id=\"" + tooltipID + "\"></div>");
+			// Select the new node.
+			info = $("#" + tooltipID);
+			// Make it visible.
 			info.toggle();
 			// Check to see if we're going to go off the edge of the window.
-			lleft = offset.left;
-			iw = info.width() + 20;       // Width of info box (plus padding)
-			ww = $(document).width();     // Window width
-			rt = lleft + $(this).width(); // Starting left position
-			if((rt + iw) > ww) {
+			leftOffset = offsetObject.left;
+			infoWidth = info.width() + 20;					// Width of info box (plus padding)
+			windowWidth = $(document).width();				// Window width
+			leftPosition = leftOffset + $(this).width();	// Starting left position
+			if((leftPosition + infoWidth) > windowWidth) {
 				// Close to right edge of window.
-				if(rt <= iw) {
+				if(leftPosition <= infoWidth) {
 					// Close to left edge, too. Calculate best fit.
-					if(ww <= iw) {
-						lleft -= rt;
-						lleft += 2;
+					if(windowWidth <= infoWidth) {
+						leftOffset -= leftPosition;
+						leftOffset += 2;
 					} else {
-						lleft += (ww - (rt + iw));
-						lleft -= 3;
+						leftOffset += (windowWidth - (leftPosition + infoWidth));
+						leftOffset -= 3;
 					}
 				} else {
 					// Just move it left.
-					lleft -= iw;
+					leftOffset -= infoWidth;
 				}
 			}
-			info.html(helppp).css({"z-index": zCounter, "top": offset.top + 10, "left": lleft} );
+			info.html(helpHTML).css({"z-index": zCounter, "top": offsetObject.top + 10, "left": leftOffset} );
 			info.click(function() {
 				// Delete the stored info from the parent question mark.
 				$('span[data-clicked="' + $(this).attr("id") + '"]').removeAttr("data-clicked");
@@ -973,39 +1002,45 @@ $(".help").click(function() {
 	} else {
 		//
 		// Handle tooltips in main body
+		//
+		// Start by toggling the info's visiblity.
 		info.toggle();
+		// Transform it back to 0 (default state) just in case it was moved before.
 		info.css("transform", "translateX(0px)");
+		// We only need to calculate stuff if we're visible.
 		if(info.is(":visible")) {
+			// Increment the zCounter.
 			++zCounter;
+			// Give the info box that z-index.
 			info.css("z-index", zCounter);
-			iw = info.width() + 20;             // Width of info box (plus padding)
-			ww = $(document).width();           // Window width
-			offset = $(this).offset();
-			rt = offset.left + $(this).width(); // Starting left position
-			if((rt + iw) > ww) {
-				// Close to right edge of window.
-				if(rt <= iw) {
-					// Close to left edge of window, too!
+			infoWidth = info.width() + 20;						// Width of info box (plus padding)
+			windowWidth = $(document).width();					// Window width
+			offsetObject = $(this).offset();
+			leftPosition = offsetObject.left + $(this).width();	// Starting left position
+			if((leftPosition + infoWidth) > windowWidth) {
+				// Info box is close to the right edge of window.
+				if(leftPosition <= infoWidth) {
+					// Close to the left edge of window, too!
 					// Calculate best fit.
-					if(ww <= iw) {
+					if(windowWidth <= infoWidth) {
 						// WHY would your window be so small??
 						// Push it to the left edge. Hope we can scroll.
-						//	0 - (rt - 2)
-						//	0 - rt + 2
-						//	2 - rt
-						info.css("transform", "translateX(" + (2 - rt) + "px)");
+						//	0 - (leftPosition - 2)
+						//	0 - leftPosition + 2
+						//	2 - leftPosition
+						info.css("transform", "translateX(" + (2 - leftPosition) + "px)");
 					} else {
-						// Moving it left 'iw' pushes it off the left edge.
-						// Leaving it pushes it off the right edge by '(ww - (rt + iw))' pixels.
-						// So move it leftward '(ww - (rt + iw))' and add a bit of padding
+						// Moving it left 'infoWidth' pushes it off the left edge.
+						// Leaving it pushes it off the right edge by '(windowWidth - (leftPosition + infoWidth))' pixels.
+						// So move it leftward '(windowWidth - (leftPosition + infoWidth))' and add a bit of padding
 						// Should leave it just off the right edge!
-						//	ww - (rt + iw)
-						//	ww - rt - iw
-						info.css("transform", "translateX(" + (ww - rt - iw) + "px)");
+						//	windowWidth - (leftPosition + infoWidth)
+						//	windowWidth - leftPosition - infoWidth
+						info.css("transform", "translateX(" + (windowWidth - leftPosition - infoWidth) + "px)");
 					}
 				} else {
 					// To the left, to the left. Every tool you tip, in a box to the left.
-					info.css("transform", "translateX(" + (0 - iw) + "px)");
+					info.css("transform", "translateX(" + (0 - infoWidth) + "px)");
 				}
 			}
 		}
