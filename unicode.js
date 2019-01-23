@@ -1,3 +1,9 @@
+// Script (C) 2017-2019 by Jason Tamez
+// This work is licensed under a Creative Commons Attribution 4.0 International license.
+// http://creativecommons.org/licenses/by/4.0/
+
+// Code available here: https://github.com/jasontamez/wordgen
+
 function getUnicodeName(what) {
 
 	switch (what) {
