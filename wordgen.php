@@ -194,7 +194,7 @@ CRV</textarea>
 	<div><button onClick="doImport()">Import</button> <button onClick="removeImportBox()">Cancel</button></div>
 </div>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="js/unicode.js"></script>
-<script src="js/wordgen.js"></script>
+<script src="js/unicode.min.js"></script>
+<script src="js/wordgen.min.js"></script>
 </body>
 </html>
