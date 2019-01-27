@@ -66,7 +66,11 @@ body {
 	padding: 2em 0px 0.2em 1.5em;
 }
 .lexicon {
-	overflow: auto;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(10em, 1fr) );
+	grid-column-gap: 1em;
+	grid-row-gap: 0.25em;
+	/*overflow: auto;*/
 	border: 0px;
 	margin: 0px;
 	padding: 0px;
@@ -200,28 +204,41 @@ em.two {
 	box-shadow: 0px 0px 2px 0px #33f;
 }
 #advancedOpen {
+	display: flex;
+	flex-flow: row wrap;
+	justify-content: flex-start;
+	align-items: center;
 	background: #bcd;
 	margin: 0px;
 	max-height: 10em;
 	overflow: hidden;
-	padding: 0.75em 1.5em 0.25em 1.5em;
+	padding: 0.75em 1.5em 0.25em 0;
 	transition: max-height 0.3s ease,
 		padding 0.3s ease,
 		margin 0.3s ease;
 }
 #advancedOpen button {
-	margin: 0px 0px 0.75em 1em;
+	margin: 0;
+	white-space: nowrap;
 }
-#advancedOpen button:first-child {
+#advancedOpen div {
+	margin: 0 0 0.75em 1em;
+	max-width: 10em;
+}
+/*#advancedOpen div:first-child {
 	margin-left: 0px;
-}
+}*/
 #advancedOpen .help {
 	vertical-align: text-top;
 }
+#advancedOpen input {
+	width: 3em;
+	text-align: right;
+}
 #advancedOpen.closed {
 	max-height: 0;
-	padding: 0px 1.5em;
-	margin: 0px 0px 0.2em 0px;
+	padding: 0 1.5em 0 0;
+	margin: 0 0 0.2em 0;
 	transition: max-height 0.3s ease,
 		padding 0.2s ease 0.1s,
 		margin 0.3s ease;

@@ -6,33 +6,30 @@
 // Modified by Jason Tamez 2017-2019.
 // Code available here: https://github.com/jasontamez/wordgen
 
-var nLexTotal  = 150,	// Number of words in a lexicon
-nSentences = 30,		// Number of sentences in a text
-
-cat,					// Used to interpret the categories
-ncat,						//  .length
+var cat,			// Used to interpret the categories
+ncat,					//  .length
 previousCat = false,	// Holds previous categories, to save processing
-syl,					// Holds mid-word syllables
-nsyl,						//  .length
-wisyl,					// Holds word-initial syllables
-nwisyl,						//  .length
-wfsyl,					// Holds word-final syllables
-nwfsyl,						//  .length
-snsyl,					// Holds syllables for single-syllable words
-nsnsyl,						//  .length
+syl,				// Holds mid-word syllables
+nsyl,					//  .length
+wisyl,			// Holds word-initial syllables
+nwisyl,				//  .length
+wfsyl,			// Holds word-final syllables
+nwfsyl,				//  .length
+snsyl,			// Holds syllables for single-syllable words
+nsnsyl,				//  .length
 previousSyl = false,
 previousWisyl = false,
 previousWfsyl = false,
 previousSnsyl = false,	// These four hold previous syllable boxes, to save processing
 
-rew,					// Holds rewrite rules
+rew,				// Holds rewrite rules
 nrew,					//  .length
 previousRew = false,	// Holds previous rewrite rules, to save processing
 
-CustomInfo = false,		// Used by Defaults to check localStorage for saved info.
+CustomInfo = false,	// Used by Defaults to check localStorage for saved info.
 Customizable = false,	// Used to indicate that saving is possible.
 
-zCounter;		// Used to create IDs for help tooltips later in this script.
+zCounter;			// Used to create IDs for help tooltips later in this script.
 
 //And that, folks, is one heck of a large VAR statement!
 
@@ -256,9 +253,10 @@ function getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
 
 // Output a pseudo-text.
 function createText(monosyl, onetype, showsyl, dropoff, slowsyl) {
-	var sent, w, nWord, output = "";
+	var	 sent,w,nWord,output = "",
+		nSentences = getAdvancedNumber("#sentences", 30, 500);
 	for (sent = 0; sent < nSentences; sent++) {
-		nWord = 1 + peakedPowerLaw(15, 5, 50); 
+		nWord = 1 + peakedPowerLaw(15, 5, 50);
 		for (w = 0; w < nWord; w++) {
 
 			output += getOneWord(w === 0, monosyl, onetype, showsyl, dropoff, slowsyl);
@@ -274,15 +272,16 @@ function createText(monosyl, onetype, showsyl, dropoff, slowsyl) {
 
 // Create a list of nLexTotal words
 function createLex(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
-	var w,output = "<div class=\"lexicon\"><table>\n";
+	var	w,output = "<div class=\"lexicon\" style=\"grid-template-columns: repeat(auto-fit, minmax(" + getAdvancedNumber("#wordLengthInEms", 10, 1000) + "em, 1fr) )\">\n",
+		nLexTotal = getAdvancedNumber("#lexiconLength", 150, 1000);
 	for (w = 0; w < nLexTotal; w++) {
-		if (w % 10 === 0) {
-			output += "<tr>";
-		}
-		output += "<td>" + getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) + "</td>";
-		if (w % 10 === 9) {
-			output += "</tr>\n";
-		}
+		//if (w % 10 === 0) {
+		//	output += "<tr>";
+		//}
+		output += "<div>" + getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) + "</div>";
+		//if (w % 10 === 9) {
+		//	output += "</tr>\n";
+		//}
 	}
 	output += "</table></div>\n";
 	return output;
@@ -290,11 +289,24 @@ function createLex(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
 
 // Create a list of nLexTotal * 5 words
 function createLongLex(monosyl, onetype, showsyl, dropoff, slowsyl) {
-	var w, output="";
+	var	w, output="",
+		nLexTotal = getAdvancedNumber("largeLexiconLength", 750, 5000);
 	for (w = 0; w < nLexTotal * 5; w++) {
 		output += getOneWord(false, monosyl, onetype, showsyl, dropoff, slowsyl) + "<br>\n";
 	}
 	return output;
+}
+
+// Pull a number from the Advanced Options, making sure it's a positive number less than max.
+function getAdvancedNumber(id, normal, max) {
+	var x = parseInt($(id).val());
+	if(isNaN(x) || x < 1) {
+		return normal;
+	}
+	if(x > max) {
+		return max;
+	}
+	return x;
 }
 
 
@@ -552,7 +564,7 @@ function process() {
 				output = createLongLex(monosyl, onetype, showsyl, dropoff, slowsyl);	// large lexicon
 				break;
 			case "genall":
-				output = getEverySyllable();											// all possible syllables
+				output = getEverySyllable();								// all possible syllables
 		}
 	}
 
@@ -972,8 +984,8 @@ $(".help").click(function() {
 			info.toggle();
 			// Check to see if we're going to go off the edge of the window.
 			leftOffset = offsetObject.left;
-			infoWidth = info.width() + 20;					// Width of info box (plus padding)
-			windowWidth = $(document).width();				// Window width
+			infoWidth = info.width() + 20;			// Width of info box (plus padding)
+			windowWidth = $(document).width();			// Window width
 			leftPosition = leftOffset + $(this).width();	// Starting left position
 			if((leftPosition + infoWidth) > windowWidth) {
 				// Close to right edge of window.
@@ -1013,8 +1025,8 @@ $(".help").click(function() {
 			++zCounter;
 			// Give the info box that z-index.
 			info.css("z-index", zCounter);
-			infoWidth = info.width() + 20;						// Width of info box (plus padding)
-			windowWidth = $(document).width();					// Window width
+			infoWidth = info.width() + 20;				// Width of info box (plus padding)
+			windowWidth = $(document).width();				// Window width
 			offsetObject = $(this).offset();
 			leftPosition = offsetObject.left + $(this).width();	// Starting left position
 			if((leftPosition + infoWidth) > windowWidth) {
@@ -1026,8 +1038,8 @@ $(".help").click(function() {
 						// WHY would your window be so small??
 						// Push it to the left edge. Hope we can scroll.
 						//	0 - (leftPosition - 2)
-						//	0 - leftPosition + 2
-						//	2 - leftPosition
+						//	= 0 - leftPosition + 2
+						//	= 2 - leftPosition
 						info.css("transform", "translateX(" + (2 - leftPosition) + "px)");
 					} else {
 						// Moving it left 'infoWidth' pushes it off the left edge.
@@ -1035,7 +1047,7 @@ $(".help").click(function() {
 						// So move it leftward '(windowWidth - (leftPosition + infoWidth))' and add a bit of padding
 						// Should leave it just off the right edge!
 						//	windowWidth - (leftPosition + infoWidth)
-						//	windowWidth - leftPosition - infoWidth
+						//	= windowWidth - leftPosition - infoWidth
 						info.css("transform", "translateX(" + (windowWidth - leftPosition - infoWidth) + "px)");
 					}
 				} else {

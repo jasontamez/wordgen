@@ -129,19 +129,30 @@ CRV</textarea>
 <div id="advancedClosed"><button onClick="advancedOptions();">Open Advanced Options</button></div>
 <div id="advancedSection" class="container">
 	<div id="advancedOpen" class="closed">
-		<button onClick="saveCustom();">Save to Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Save
+		<div><button onClick="saveCustom();">Save to Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Save
 			to Browser</strong> will store the current input to your browser&apos;s localStorage, if your browser supports it, and create
 			a new <em>Custom Settings</em> Default. If you already have info stored, this will overwrite it!<br><br>NOTE: This should not
 			be considered a long-term storage solution, as your browser might delete it if you run out of cache or localStorage space. Use
-			<strong>Export Settings</strong> to keep an offline backup.</span></span>
-		<button onClick="clearCustom();">Clear from Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Clear
-			from Browser</strong> will delete any information stored on your browser by the <strong>Save</strong> button.</span></span>
-		<button onClick="prepImport();">Import Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Import
+			<strong>Export Settings</strong> to keep an offline backup.</span></span></div>
+		<div><button onClick="clearCustom();">Clear from Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Clear
+			from Browser</strong> will delete any information stored on your browser by the <strong>Save</strong> button.</span></span></div>
+		<div><button onClick="prepImport();">Import Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Import
 			Settings</strong> will open a box where you can paste information formatted by <strong>Export Settings</strong>. Clicking
-			<strong>Import</strong> below the box will load your settings. Clicking <strong>Cancel</strong> will close the box.</span></span>
-		<button onClick="doExport();">Export Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Export
+			<strong>Import</strong> below the box will load your settings. Clicking <strong>Cancel</strong> will close the box.</span></span></div>
+		<div><button onClick="doExport();">Export Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Export
 			Settings</strong> will open a box and fill it with formatted information based on the settings currently active. Copy and
-			save it for your own records, and use <strong>Import Settings</strong> to reload it at a later date.</span></span>
+			save it for your own records, and use <strong>Import Settings</strong> to reload it at a later date.</span></span></div>
+		<div><strong>Table cell size:</strong><br><input type="number" value="10" id="wordLengthInEms">em
+			<span class="help popOut">?<span class="info">When using a Wordlist as an <strong>Output type</strong>, this determines
+			how much space each word will take up. Modify this if the words you're generating are larger (or much smaller) than
+			the space the Wordlist is giving you.</span></span></div>
+		<div><strong>Wordlist size:</strong><br><input type="number" value="150" id="lexiconLength"> words
+			<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output Type</strong>, it will output this many words.</div>
+		<div><strong>Giant wordlist:</strong><br><input type="number" value="750" id="lexiconLength"> words
+			<span class="help popOut">?<span class="info">When you use Giant Wordlist as an <strong>Output Type</strong>, it will output this many words.</div>
+		<div><strong>Pseudo-text size:</strong><br><input type="number" value="30" id="sentences"> sentences
+			<span class="help popOut">?<span class="info">When you use Text output as your <strong>Output Type</strong>, it will output
+			this many sentences. (Sentences are between 1 and 15 words long, stronly favoring the middle of that range.)</div>
 	</div>
 </div>
 <div id="btns">
