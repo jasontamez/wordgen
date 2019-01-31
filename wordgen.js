@@ -253,7 +253,7 @@ function getOneWord(capitalize, monosyl, onetype, showsyl, dropoff, slowsyl) {
 
 // Output a pseudo-text.
 function createText(monosyl, onetype, showsyl, dropoff, slowsyl) {
-	var	 sent,w,nWord,output = "",
+	var	sent,w,nWord,output = "",
 		nSentences = getAdvancedNumber("#sentences", 30, 500);
 	for (sent = 0; sent < nSentences; sent++) {
 		nWord = 1 + peakedPowerLaw(15, 5, 50);
@@ -731,25 +731,10 @@ function clearCustom() {
 
 // Display the IPA and other stuff.
 function showipa() {
-	var	word = '<span class="desc">Latin:</span>' + "\n" + '<div class="extraGroup">',
-		frst = [ 0x00a1, 0x00bf, 0x00d8, 0x00f8, 0x2c60, 0xa722, 0xa78b, 0xa7b0, 0xab30, 0xab60, "x",   0x0250, "x",                0x0370, 0x0376, 0x037a, 0x0386, 0x0388, 0x038c, 0x038e, 0x03a3, 0xab65, "x",        0x0400, 0x048a, 0xa640, 0xa680, "x",        0x0531, 0x0561 ],
-		last = [ 0x00a1, 0x00d6, 0x00f6, 0x024f, 0x2c7f, 0xa787, 0xa7ad, 0xa7b7, 0xab5a, 0xab64, "IPA", 0x02ff, "Greek and Coptic", 0x0373, 0x0377, 0x037f, 0x0386, 0x038a, 0x038c, 0x03a1, 0x03ff, 0xab65, "Cyrillic", 0x0482, 0x052f, 0xa66e, 0xa69b, "Armenian", 0x0556, 0x0587 ],
-		i, j, len;
-	for (i = 0, len = frst.length; i < len; i++) {
-		// If we detect an "x", then last[x] has a new category name to display.
-		if (frst[i] === "x") {
-			word += "</div>\n" + '<br><br><span class="desc">' + last[i] + ":</span>\n" + '<div class="extraGroup">';
-		} else {
-			// Displaying entities numerically numbered in Unicode from frst[x] to last[x].
-			for (j = frst[i]; j <= last[i]; j++) {
-				// getUnicodeName is defined in a separate unicode.js script.
-				word += '<span title="'+ j + ': ' + getUnicodeName(j) + '">' + String.fromCharCode(j) + "</span>";
-			}
-		}
-	}
-	word += "</div>\n";
-	$("#outputText").html(word);
+	// Moved to unicode.js
+	$("#outputText").html(returnIPAPlus("<span class=\"desc\">", "</span>\n<div class=\"extraGroup\">", "</div>\n", "<br><br>"));
 }
+	
 
 // Open/close the Advanced Options block.
 function advancedOptions() {
