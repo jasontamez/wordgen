@@ -25,6 +25,7 @@ previousSnsyl = false,	// These four hold previous syllable boxes, to save proce
 rew,				// Holds rewrite rules
 nrew,					//  .length
 previousRew = false,	// Holds previous rewrite rules, to save processing
+rewSep = false,		// Separates rewrite selector from replacement
 
 CustomInfo = false,	// Used by Defaults to check localStorage for saved info.
 Customizable = false,	// Used to indicate that saving is possible.
@@ -56,7 +57,7 @@ function handleCategoriesInRewriteRule(rule) {
 	// Split along those, then join with % at end.
 	var broken = rule.split("%%"),
 		rewritten = [],
-		testing,catt,chunk,bit,ind;
+		testing,catt,chunk,bit;
 	while(broken.length) {
 		// First, check for category negation.
 		// Separate into array, split along !% negations.
@@ -375,7 +376,7 @@ function escapeHTML(html) {
 
 // User hit the action button.  Make things happen!
 function process() {
-	var whichWay,counter,z,foo,bar,output,tester,errorMessages = [],showsyl,slowsyl,onetype,monosyl,dropoff,tempArray;
+	var whichWay,counter,foo,bar,baz,output,tester,errorMessages = [],showsyl,slowsyl,onetype,monosyl,dropoff,tempArray;
 	// Read parameters.
 	whichWay = $("input[type=radio][name=outtype]:checked").val();	// What output are we aiming for?
 	showsyl = $("#showsyl").prop("checked");	// Do we show syllable breaks?
@@ -406,10 +407,10 @@ function process() {
 	// Parse all those boxes for validness.
 
 	// Grab the category list.
-	z = $("#cats").val();
+	baz = $("#cats").val();
 	// If the categories have changed, parse them.
-	if(z !== previousCat) {
-		foo = z.split(/\r?\n/);
+	if(baz !== previousCat) {
+		foo = baz.split(/\r?\n/);
 		// Hold on to the number of categories.
 		ncat = foo.length;
 		// Set up an object for all categories.
@@ -453,63 +454,64 @@ function process() {
 		});
 		// If we found no errors, save the categories.
 		if(tester && ncat > 0) {
-			previousCat = z;
+			previousCat = baz;
 		}
 	}
 
 	// Parse the syllable lists.
 	// Check each one to see if it's changed, first.
-	z = $("#syls").val();
-	if(z !== previousSyl) {
-		syl = parseSyllables(z);
+	baz = $("#syls").val();
+	if(baz !== previousSyl) {
+		syl = parseSyllables(baz);
 		nsyl = syl.length;
-		previousSyl = z;
+		previousSyl = baz;
 	}
 
-	z = $("#wrdi").val();
-	if(z !== previousWisyl) {
-		wisyl = parseSyllables(z);
+	baz = $("#wrdi").val();
+	if(baz !== previousWisyl) {
+		wisyl = parseSyllables(baz);
 		nwisyl = wisyl.length;
-		previousWisyl = z;
+		previousWisyl = baz;
 	}
 
-	z = $("#wrdf").val();
-	if(z !== previousWfsyl) {
-		wfsyl = parseSyllables(z);
+	baz = $("#wrdf").val();
+	if(baz !== previousWfsyl) {
+		wfsyl = parseSyllables(baz);
 		nwfsyl = wfsyl.length;
-		previousWfsyl = z;
+		previousWfsyl = baz;
 	}
 
-	z = $("#sing").val();
-	if(z !== previousSnsyl) {
-		snsyl = parseSyllables(z);
+	baz = $("#sing").val();
+	if(baz !== previousSnsyl) {
+		snsyl = parseSyllables(baz);
 		nsnsyl = snsyl.length;
-		previousSnsyl = z;
+		previousSnsyl = baz;
 	}
 
 	// Grab the rewrite rules.
-	z = $("#rewrite").val();
+	baz = $("#rewrite").val();
+	// Find the splitter. (|| by default)
+	foo = $("#rewSep").val();
 	// If the rules have changed, parse them.
-	if(previousRew !== z) {
-		tempArray = z.split(/\r?\n/);
+	if(previousRew !== baz || foo !== rewSep) {
+		rewSep = foo;
+		tempArray = baz.split(/\r?\n/);
 		// Save the length of the rules.
 		nrew = tempArray.length;
 		// Set up rew as a blank object.
 		rew = new Object;
-		// Start out as if no rules are bad.
-		badrew = false;
 		// Set up a counter to give each rule a unique ID.
 		counter = 0;
 		// Go through each rule one at a time.
 		tester = tempArray.every(function(rule) {
 			// Make sure each rule has two parts.
-			var replacement, separatorPosition = rule.indexOf("||");
+			var replacement, separatorPosition = rule.indexOf(rewSep);
 			if(rule.trim() === "") {
 				// Ignore blank lines.
 				nrew--;
-			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf("||")) {
+			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
 				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
-				errorMessages.push("<strong>Error:</strong>" + escapeHTML(rule) + "<br>Rewrite rules must be in the form x||y<br>That is, a rule (x), followed by two vertical bars, followed by a replacement expression (y, which may be blank).");
+				errorMessages.push("<strong>Error:</strong>" + escapeHTML(rule) + "<br>Rewrite rules must be in the form x" + rewSep + "y<br>That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
 				// End the looping.
 				return false;
 			} else {
@@ -528,7 +530,7 @@ function process() {
 		});
 		// If we found no errors, save the rules.
 		if(tester) {
-			previousRew = z;
+			previousRew = baz;
 			// nrew === 0 is ok: sometimes you don't need to rewrite anything.
 		}
 	}
@@ -735,7 +737,6 @@ function showipa() {
 	$("#outputText").html(returnIPAPlus("<span class=\"desc\">", "</span>\n<div class=\"extraGroup\">", "</div>\n", "<br><br>"));
 }
 	
-
 // Open/close the Advanced Options block.
 function advancedOptions() {
 	$("#advancedOpen").toggleClass("closed");
@@ -935,111 +936,3 @@ if(typeof(Storage) !== "undefined") {
 $("#onetype").change(function() { syllablicChangeDetection($("#onetype")[0]); });
 // Fire it right now.
 syllablicChangeDetection($("#onetype")[0]);
-
-// Set counter for tooltips, thus giving each a unique ID and an ever-increasing z-index.
-zCounter = 1;
-// Set up help tooltips as needed.
-$(".help").click(function() {
-	var info = $(this).find("span.info"), leftOffset, infoWidth, windowWidth, leftPosition, offsetObject, helpHTML, tooltipID;
-	if($(this).hasClass("popOut")) {
-		//
-		// Handle tooltips from the Advanced Options.
-		//
-		tooltipID = $(this).attr("data-clicked");
-		if(typeof tooltipID !== "undefined") {
-			// data-clicked is defined? Then we've been clicked. Remove the tooltip.
-			$("#" + tooltipID).remove();
-			// Remove the stored info.
-			$(this).removeAttr("data-clicked");
-		} else {
-			// data-clicked isn't defined? Then create a tooltip.
-			// We can't simply show the tooltip box, since it's constrained by the flex container.
-			offsetObject = $(this).offset();
-			helpHTML = info.html();
-			// Create an ID to remember this by, using the ever-increased zCounter.
-			++zCounter;
-			tooltipID = "popup" + zCounter;
-			// Store that ID on the question mark.
-			$(this).attr("data-clicked", tooltipID);
-			// Create new tooltip node.
-			$("body").append("<div class=\"info\" id=\"" + tooltipID + "\"></div>");
-			// Select the new node.
-			info = $("#" + tooltipID);
-			// Make it visible.
-			info.toggle();
-			// Check to see if we're going to go off the edge of the window.
-			leftOffset = offsetObject.left;
-			infoWidth = info.width() + 20;			// Width of info box (plus padding)
-			windowWidth = $(document).width();			// Window width
-			leftPosition = leftOffset + $(this).width();	// Starting left position
-			if((leftPosition + infoWidth) > windowWidth) {
-				// Close to right edge of window.
-				if(leftPosition <= infoWidth) {
-					// Close to left edge, too. Calculate best fit.
-					if(windowWidth <= infoWidth) {
-						leftOffset -= leftPosition;
-						leftOffset += 2;
-					} else {
-						leftOffset += (windowWidth - (leftPosition + infoWidth));
-						leftOffset -= 3;
-					}
-				} else {
-					// Just move it left.
-					leftOffset -= infoWidth;
-				}
-			}
-			info.html(helpHTML).css({"z-index": zCounter, "top": offsetObject.top + 10, "left": leftOffset} );
-			info.click(function() {
-				// Delete the stored info from the parent question mark.
-				$('span[data-clicked="' + $(this).attr("id") + '"]').removeAttr("data-clicked");
-				// Remove this.
-				$(this).remove();
-			});
-		}
-	} else {
-		//
-		// Handle tooltips in main body
-		//
-		// Start by toggling the info's visiblity.
-		info.toggle();
-		// Transform it back to 0 (default state) just in case it was moved before.
-		info.css("transform", "translateX(0px)");
-		// We only need to calculate stuff if we're visible.
-		if(info.is(":visible")) {
-			// Increment the zCounter.
-			++zCounter;
-			// Give the info box that z-index.
-			info.css("z-index", zCounter);
-			infoWidth = info.width() + 20;				// Width of info box (plus padding)
-			windowWidth = $(document).width();				// Window width
-			offsetObject = $(this).offset();
-			leftPosition = offsetObject.left + $(this).width();	// Starting left position
-			if((leftPosition + infoWidth) > windowWidth) {
-				// Info box is close to the right edge of window.
-				if(leftPosition <= infoWidth) {
-					// Close to the left edge of window, too!
-					// Calculate best fit.
-					if(windowWidth <= infoWidth) {
-						// WHY would your window be so small??
-						// Push it to the left edge. Hope we can scroll.
-						//	0 - (leftPosition - 2)
-						//	= 0 - leftPosition + 2
-						//	= 2 - leftPosition
-						info.css("transform", "translateX(" + (2 - leftPosition) + "px)");
-					} else {
-						// Moving it left 'infoWidth' pushes it off the left edge.
-						// Leaving it pushes it off the right edge by '(windowWidth - (leftPosition + infoWidth))' pixels.
-						// So move it leftward '(windowWidth - (leftPosition + infoWidth))' and add a bit of padding
-						// Should leave it just off the right edge!
-						//	windowWidth - (leftPosition + infoWidth)
-						//	= windowWidth - leftPosition - infoWidth
-						info.css("transform", "translateX(" + (windowWidth - leftPosition - infoWidth) + "px)");
-					}
-				} else {
-					// To the left, to the left. Every tool you tip, in a box to the left.
-					info.css("transform", "translateX(" + (0 - infoWidth) + "px)");
-				}
-			}
-		}
-	}
-});
