@@ -1,3 +1,15 @@
+/*Colors */
+:root {
+	--focus: #acd;
+	--shadow: #33f;
+	--advanced-bg: #bcd;
+	--section-bg: #cde;
+	--disabled-fg: #000;
+	--disabled-bg: #fff;
+	--info-bg: #f0f0f9;
+	--header-fg: #235;
+}
+
 /* Fonts */
 
 /* Noto Sans */
@@ -42,28 +54,27 @@ input {
 button:focus,
 textarea:focus,
 input:focus {
-	box-shadow: 0px 0px 5px 1px #acd;
+	box-shadow: 0 0 5px 1px var(--focus);
 }
 input:focus {
-	outline: #acd solid 2px;
+	outline: var(--focus) solid 2px;
 }
 h2 {
-	color: #fff;
 	text-align: left;
 	background: inherit;
-	margin: 1em 0px;
+	margin: 1em 0;
 	padding: initial;
 }
 body {
 	font-family: "Noto Sans",Arial,sans-serif;
-	margin: 0px;
+	margin: 0;
 	padding: 0.5em;
-	border: 0px;
+	border: 0;
 	font-size: 1em;
 }
 #title {
-	background: #679;
-	padding: 2em 0px 0.2em 1.5em;
+	background: var(--accent-bg);
+	padding: 2em 0 0.2em 1.5em;
 }
 .lexicon {
 	display: grid;
@@ -71,9 +82,9 @@ body {
 	grid-column-gap: 1em;
 	grid-row-gap: 0.25em;
 	/*overflow: auto;*/
-	border: 0px;
-	margin: 0px;
-	padding: 0px;
+	border: 0;
+	margin: 0;
+	padding: 0;
 	max-width: 100%;
 }
 p.desc {
@@ -81,7 +92,7 @@ p.desc {
 	border-bottom: 1px solid;
 	max-width: 750px;
 	text-indent: -1em;
-	padding: 0px 2em 1em 2em;
+	padding: 0 2em 1em 2em;
 	padding-right: calc(100vw - 750px - 2em);
 }
 p.desc a {
@@ -93,10 +104,10 @@ p.desc a {
 h3 {
 	border-top: 1px solid;
 	padding-top: 1em;
-	color: #235;
+	color: var(--header-fg);
 }
 #outputText {
-	margin: 1.5em 0px 2em 0px;
+	margin: 1.5em 0 2em 0;
 }
 #outputText span {
 	font-family: "Charis SIL",CharisSILWeb,"Noto Serif",Georgia,serif;
@@ -115,25 +126,25 @@ h3 {
 	justify-content: flex-start;
 }
 #btns {
-	margin: 1em 0px 0px 0px;
+	margin: 1em 0 0 0;
 	line-height: 1.5;
 	vertical-align: baseline;
 }
 button {
-	background: #fff;
-	color: #235;
+	background: var(--accent-fg);
+	color: var(--header-fg);
 	font-weight: bold;
 	font-size: 0.85em;
 	border-width: 2px;
 	border-style: outset;
-	border-color: #679;
+	border-color: var(--accent-bg);
 	padding: 3px 0.5em 2px;
 	margin-left: 0.7em;
 	margin-bottom: 1em;
 }
 button:active {
 	border-style: inset;
-	box-shadow: 0px 0px 3px 1px #33f;
+	box-shadow: 0 0 3px 1px var(--shadow);
 }
 .buttongroup {
 	white-space: nowrap;
@@ -155,11 +166,11 @@ button:active {
 	justify-content: flex-start;
 }
 #wicheck div {
-	margin: 0px;
+	margin: 0;
 }
 .help,
 .help-fake {
-	background: #fff;
+	background: var(--accent-fg);
 	margin-left: 0.3em;
 	font-size: 0.7em;
 	vertical-align: top;
@@ -168,7 +179,7 @@ button:active {
 .help {
 	cursor: help;
 	position: relative;
-	left: 0px;
+	left: 0;
 }
 .info {
 	cursor: help;
@@ -178,14 +189,14 @@ button:active {
 	width: 220px;
 	box-sizing: border-box;
 	z-index: 3;
-	background: #f0f0f9;
-	border: 3px double #679;
-	margin: 0px;
+	background: var(--info-bg);
+	border: 3px double var(--accent-bg);
+	margin: 0;
 	padding: 10px;
 	line-height: 1.1;
 	white-space: normal;
 	position: absolute;
-	left: 0px;
+	left: 0;
 	top: 0.7em;
 }
 em.two {
@@ -196,24 +207,24 @@ em.two {
 	margin: 1em 0 0;
 }
 #advancedClosed button {
-	background: #679;
-	border-color: #f9f9ff;
-	color: #def;
+	background: var(--accent-bg);
+	border-color: var(--accent-border);
+	color: var(--main-bg);
 	font-style: italic;
 	font-size: 0.7em;
 	margin-bottom: 0;
 }
 #advancedClosed button:active {
-	box-shadow: 0px 0px 2px 0px #33f;
+	box-shadow: 0 0 2px 0 var(--shadow);
 }
 #advancedOpen {
 	display: flex;
 	flex-flow: row wrap;
 	justify-content: flex-start;
 	align-items: center;
-	background: #bcd;
-	max-height: 10em;
+	background: var(--advanced-bg);
 	margin: 0;
+	max-height: 22em;
 	overflow: hidden;
 	padding: 0.75em 1em 0.25em 1em;
 	transition: max-height 0.3s ease,
@@ -282,8 +293,8 @@ em.two {
 		margin 0.3s ease;
 }
 table tr td {
-	margin: 0px;
-	padding: 0px 0px 0.25em 1em;
+	margin: 0;
+	padding: 0 0 0.25em 1em;
 }
 #importBoxArea {
 	background: rgba(0, 0, 0, 0.8);
@@ -293,13 +304,13 @@ table tr td {
 	left: 0;
 	min-width: 100%;
 	min-height: 100%;
-	padding: 0px;
-	margin: 0px;
-	border: 0px;
+	padding: 0;
+	margin: 0;
+	border: 0;
 	text-align: center;
 }
 #importBoxArea div {
-	margin: 0px auto;
+	margin: 0 auto;
 }
 #importTextBox {
 	margin: 1em auto;
@@ -313,7 +324,7 @@ body.tutorial-page p {
 body.tutorial-page p.desc {
 	text-align: justify;
 	max-width: 600px;
-	padding: 0px calc(50vw - 300px - 0.5em) 1.5em;
+	padding: 0 calc(50vw - 300px - 0.5em) 1.5em;
 }
 body.tutorial-page div.example-textbox {
 	display: flex;
@@ -323,13 +334,13 @@ body.tutorial-page div.example-textbox {
 	max-width: 600px;
 }
 body.tutorial-page div.example-textbox div {
-	background: #cde;
+	background: var(--section-bg);
 	padding: 0.5em;
 	text-align: justify;
 }
 body.tutorial-page div.example-textbox div textarea:disabled {
-	background: #fff;
-	color: #000;
+	background: var(--disabled-bg);
+	color: var(--disabled-fg);
 	resize: none;
 }
 body.tutorial-page ul {
@@ -337,8 +348,8 @@ body.tutorial-page ul {
 	max-width: 600px;
 }
 body.tutorial-page ol {
-	margin: 0em auto 2em;
-	padding: 0em;
+	margin: 0 auto 2em;
+	padding: 0;
 	max-width: 600px;
 	counter-reset: item;
 	box-sizing: border-box; 
@@ -395,7 +406,8 @@ table {
 	margin-bottom: 1em;
 }
 #parameters div:last-child {
-	margin-right: 0px;
+	margin-right: 0;
+}
 }
 
 @supports (display: grid) {
@@ -409,7 +421,7 @@ table {
 			"outtype dropoff mono mws"
 			"outtype dropoff mono wfs"
 			"syl     dropoff mono wfs";
-		grid-template-columns: minmax(20em, max-content) minmax(20em, max-content) minmax(11em, max-content) minmax(11em, max-content);
+		grid-template-columns: minmax(20em, max-content) minmax(20em, max-content) minmax(11em, max-content) auto;
 		grid-template-rows: minmax(2.5em, max-content) minmax(5.5em, max-content) minmax(3em, max-content) minmax(2.5em, max-content) minmax(5.5em, max-content) auto;
 		grid-gap: 0 0;
 		justify-items: start;
@@ -485,9 +497,12 @@ table {
 				"rewrite dropoff wfs"
 				"rewrite dropoff mono"
 				"outtype dropoff mono"
+				"outtype syl     mono"
+				"outtype syl     ."
 				"outtype syl     .";
-			grid-template-columns: minmax(21em, max-content) minmax(12em, max-content) minmax(12em, max-content);
-			grid-template-rows: minmax(3em, max-content) minmax(6em, max-content) minmax(3em, max-content) minmax(6em, max-content) minmax(3em, max-content) minmax(3em, max-content) minmax(3em, max-content) minmax(6em, max-content);
+			grid-template-columns: minmax(21em, max-content) minmax(12em, max-content) auto;
+			grid-template-rows: repeat(10, auto);
+		}
 		}
 
 	}
@@ -506,13 +521,15 @@ table {
 				"syl     syl     wfs"
 				"dropoff mono    wfs"
 				"dropoff mono    .";
-			grid-template-columns: minmax(10em, max-content) minmax(10em, max-content) minmax(11em, max-content);
-			grid-template-rows: minmax(11em, max-content) minmax(2.5em, max-content) minmax(5.5em, max-content) minmax(2em, max-content) minmax(3em, max-content) minmax(2.5em, max-content) minmax(1em, max-content) minmax(3em, max-content) minmax(3em, max-content) minmax(5em, max-content);
+			grid-template-columns: minmax(10em, max-content) minmax(10em, max-content) auto;
+			grid-template-rows: repeat(10, auto);
 			grid-row-gap: 0.5em;
 		}
 		#parameters textarea {
 			margin-bottom: 0;
 		}
+	
+	}
 
 	}
 
@@ -530,9 +547,10 @@ table {
 				"syl     syl     syl     ."
 				"dropoff mono    mono    mono";
 			grid-template-columns: minmax(8em, max-content) minmax(3em, max-content) auto auto;
-			grid-template-rows: auto;
+			grid-template-rows: repeat(9, auto);
 			grid-row-gap: 0.5em;
 			margin-bottom: 1em;
+			justify-content: center;
 		}
 
 	}
@@ -546,12 +564,12 @@ table {
 @media only screen and (max-width: 800px) {
 
 	p.desc {
-		padding: 0px 2em 1em 2em;
+		padding: 0 2em 1em 2em;
 		text-indent: 1em;
 		text-align: justify;
 	}
 	body.tutorial-page p {
-		padding: 0px 1em 1em 1em;
+		padding: 0 1em 1em 1em;
 	}
 	#parameters div	{
 		margin-right: 0;
@@ -562,9 +580,13 @@ table {
 @media only screen and (max-width: 700px) {
 
 	body.tutorial-page p.desc {
-		padding: 0px 2em 1em 2em;
+		padding: 0 2em 1em 2em;
 		text-indent: 1em;
 		text-align: justify;
 	}
+	#advancedOpen {
+		max-height: 50em;
+	}
 
 }
+
