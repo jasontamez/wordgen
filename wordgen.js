@@ -633,9 +633,9 @@ function removeImportBox() {
 // Parse input to import.
 function doImport() {
 	// The imported info must match the following pattern.
-	var patt = /--CATS--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ ]+)/,
+	var patt = /--CATS--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ ]+)(\n--ADVANCED--\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([^\n]+))?/,
 		toImport = $("#importTextBox").val(),
-		m = patt.exec(toImport);
+		m = patt.exec(toImport),foo,bar;
 	if(m === null) {
 		return alert("Incorrect format.");
 	}
@@ -650,6 +650,22 @@ function doImport() {
 	$("#slowsyl").prop("checked", ((m[8] === "0") ? false : true));
 	$("#" + m[9]).prop("checked", true);
 	$("#" + m[10]).prop("checked", true);
+	// Check for Advanced Options added later.
+	if(m.length > 12) {
+		foo = 12;
+		while(foo < 16) {
+			bar = Number(m[foo]);
+			if(!Number.isInteger(bar) || bar < 1) {
+				m[foo] = "1";
+			}
+			foo++;
+		}
+		$("#wordLengthInEms").val(m[12]);
+		$("#lexiconLength").val(m[13]);
+		$("#largeLexiconLength").val(m[14]);
+		$("#sentences").val(m[15]);
+		$("#rewSep").val(m[16]);
+	}
 	// Hide/show boxes if needed.
 	syllablicChangeDetection($("#onetype")[0]);
 	// Announce success.
@@ -670,8 +686,14 @@ function doExport() {
 		($("#onetype").prop("checked") ? "1" : "0") + " " +
 		($("#slowsyl").prop("checked") ? "1" : "0") + " " +
 		$("input[name=monosyl]:checked").attr("id") + " " +
-		$("input[name=dropoff]:checked").attr("id");
-	// Put tht info in the box.
+		$("input[name=dropoff]:checked").attr("id") +
+		"\n--ADVANCED--\n" +
+		$("#wordLengthInEms").val() + "\n" +
+		$("#lexiconLength").val() + "\n" +
+		$("#largeLexiconLength").val() + "\n" +
+		$("#sentences").val() + "\n" +
+		$("#rewSep").val();
+	// Put the info in the box.
 	$("#importTextBox").val(toExport);
 	// Show the box (and everything else).
 	prepImport();
@@ -688,16 +710,21 @@ function saveCustom() {
 		alert("Previous information saved.");
 		return;
 	}
-	localStorage.setItem("CustomCats",	$("#cats").val());
+	localStorage.setItem("CustomCats",		$("#cats").val());
 	localStorage.setItem("CustomRewrite",	$("#rewrite").val());
-	localStorage.setItem("CustomSing",	$("#sing").val());
-	localStorage.setItem("CustomSyls",	$("#syls").val());
-	localStorage.setItem("CustomWrdi",	$("#wrdi").val());
-	localStorage.setItem("CustomWrdf",	$("#wrdf").val());
+	localStorage.setItem("CustomSing",		$("#sing").val());
+	localStorage.setItem("CustomSyls",		$("#syls").val());
+	localStorage.setItem("CustomWrdi",		$("#wrdi").val());
+	localStorage.setItem("CustomWrdf",		$("#wrdf").val());
 	localStorage.setItem("CustomOneType",	$("#onetype").prop("checked"));
 	localStorage.setItem("CustomSlowsyl",	$("#slowsyl").prop("checked"));
-	localStorage.setItem("CustomMono",	$("input[name=monosyl]:checked").attr("id"));
+	localStorage.setItem("CustomMono",		$("input[name=monosyl]:checked").attr("id"));
 	localStorage.setItem("CustomDropoff",	$("input[name=dropoff]:checked").attr("id"));
+	localStorage.setItem("CustomWordLengthInEms",	$("#wordLengthInEms").val());
+	localStorage.setItem("CustomLexiconLength",	$("#lexiconLength").val());
+	localStorage.setItem("CustomLargeLexiconLength",$("#largeLexiconLength").val());
+	localStorage.setItem("CustomSentences",		$("#sentences").val());
+	localStorage.setItem("CustomRewSep",		$("#rewSep").val());
 	CustomInfo = true;
 
 	// Check for the "Custom" predef option and add it if needed.
@@ -723,7 +750,11 @@ function clearCustom() {
 		return;
 	}
 	// Clear storage.
-	window.localStorage.clear();
+	["CustomCats","CustomRewrite","CustomSing","CustomSyls","CustomWrdi","CustomWrdf",
+	"CustomOneType","CustomSlowsyl","CustomMono","CustomDropoff","CustomWordLengthInEms",
+	"CustomLexiconLength","CustomLargeLexiconLength","CustomSentences","CustomRewSep"].forEach(function(x) {
+		window.localStorage.removeItem(x);
+	});
 	CustomInfo = false;
 	// Remove "Custom" from drop-down menu.
 	$("#predef option[value=-1]").remove();
@@ -786,6 +817,14 @@ function loadThisPredef(defN) {
 				$("#slowsyl").prop("checked", localStorage.getItem("CustomSlowsyl") === "true");
 				$("#" + localStorage.getItem("CustomMono")).prop("checked", true);
 				$("#" + localStorage.getItem("CustomDropoff")).prop("checked", true);
+				// Only do this part if necessary.
+				if(localStorage.getItem("CustomRewSep") !== null) {
+					$("#wordLengthInEms").val(localStorage.getItem("CustomWordLengthInEms"));
+					$("#lexiconLength").val(localStorage.getItem("CustomLexiconLength"));
+					$("#largeLexiconLength").val(localStorage.getItem("CustomLargeLexiconLength"));
+					$("#sentences").val(localStorage.getItem("CustomSentences"));
+					$("#rewSep").val(localStorage.getItem("CustomRewSep"));
+				}
 			} else {
 				// Trigger the default action.
 				loadThisPredef(0);
