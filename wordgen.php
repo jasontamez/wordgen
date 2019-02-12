@@ -151,11 +151,11 @@ CRV</textarea>
 				the space the Wordlist is giving you.</span></span></div>
 			<div><strong>Wordlist size:</strong><br><input type="number" value="150" id="lexiconLength"> words
 				<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output Type</strong>, it will output this many words.</div>
-			<div><strong>Giant wordlist:</strong><br><input type="number" value="750" id="lexiconLength"> words
+			<div><strong>Giant wordlist:</strong><br><input type="number" value="750" id="largeLexiconLength"> words
 				<span class="help popOut">?<span class="info">When you use Giant Wordlist as an <strong>Output Type</strong>, it will output this many words.</div>
 			<div><strong>Pseudo-text size:</strong><br><input type="number" value="30" id="sentences"> sentences
 				<span class="help popOut">?<span class="info">When you use Text output as your <strong>Output Type</strong>, it will output
-				this many sentences. (Sentences are between 1 and 15 words long, stronly favoring the middle of that range.)</div>
+				this many sentences. (Sentences are between 1 and 15 words long, strongly favoring the middle of that range.)</div>
 			<div><strong>Rewrite separator:</strong><br><input type="text" value="||" id="rewSep"><span class="help popOut">?<span class="info">Defines
 				the plain text that separates the search expression from the replacement expression in <strong>Rewrite Rules</strong></div>
 		</div>
