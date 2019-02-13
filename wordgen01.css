@@ -298,7 +298,10 @@ table tr td {
 }
 #importBoxArea {
 	background: rgba(0, 0, 0, 0.8);
-	display: none;
+	display: flex;
+	flex-flow: column wrap;
+	justify-content: center;
+	align-content: center;
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -308,6 +311,9 @@ table tr td {
 	margin: 0;
 	border: 0;
 	text-align: center;
+}
+#importBoxArea.closed {
+	display: none;
 }
 #importBoxArea div {
 	margin: 0 auto;

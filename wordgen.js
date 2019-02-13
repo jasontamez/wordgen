@@ -619,21 +619,22 @@ function clearBoxes() {
 
 // Simple function sets up the import/export screen.
 function prepImport() {
-	$("#importBoxArea").show();
+	$("#importBoxArea").removeClass("closed");
 	$("body").css("overflow", "hidden");
 }
 
 // Simple function clears input/export box and removes that screen.
 function removeImportBox() {
 	$("#importTextBox").val("");
-	$("#importBoxArea").hide();
+	$("#importBoxArea").addClass("closed");
 	$("body").css("overflow", "auto");
 }
 
 // Parse input to import.
 function doImport() {
 	// The imported info must match the following pattern.
-	var patt = /--CATS--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ ]+)(\n--ADVANCED--\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([^\n]+))?/,
+	//				1				2				3			4				5			6				7	8	9	10		(11)		12		13		14	15		16
+	var patt = /--CATS--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ \n]+)(\n--ADVANCED--\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([^\n]+))?/,
 		toImport = $("#importTextBox").val(),
 		m = patt.exec(toImport),foo,bar;
 	if(m === null) {

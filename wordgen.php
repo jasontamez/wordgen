@@ -3,7 +3,6 @@
 date_default_timezone_set("UTC");
 $x = getlastmod();
 header("Last-Modified: ".date(DATE_RFC1123, $x));
-
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -206,7 +205,7 @@ CRV</textarea>
 	<div class="set-apart"><a href="conlangs/">Conlangs</a></div>
 	<div class="set-apart"><a href=".">Index</a></div>
 </div>
-<div id="importBoxArea">
+<div id="importBoxArea" class="closed">
 	<textarea id="importTextBox" name="importTextBox" rows="25" cols="40" placeholder="Paste your input here and hit 'Import' below."></textarea>
 	<div><button onClick="doImport()">Import</button> <button onClick="removeImportBox()">Cancel</button></div>
 </div>
