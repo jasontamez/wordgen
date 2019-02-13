@@ -398,6 +398,18 @@ table {
 }
 
 
+/* SweetAlert2 */
+.alertBox {
+	background: var(--main-bg);
+	color: var(--main-fg);
+}
+.alertBox button {
+	background: var(--accent-bg);
+	border-color: var(--accent-border);
+	color: var(--main-bg);
+	font-size: 1.25em;
+	margin-top: 1em;
+}
 
 #parameters {
 	/* Fallback values for grid-noncompliant browsers */

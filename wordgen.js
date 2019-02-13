@@ -638,7 +638,7 @@ function doImport() {
 		toImport = $("#importTextBox").val(),
 		m = patt.exec(toImport),foo,bar;
 	if(m === null) {
-		return alert("Incorrect format.");
+		return doAlert("Incorrect format.", "", "error");
 	}
 	// Apply imported info to the boxes and checkboxes.
 	$("#cats").val(m[1]);
@@ -670,7 +670,7 @@ function doImport() {
 	// Hide/show boxes if needed.
 	syllablicChangeDetection($("#onetype")[0]);
 	// Announce success.
-	alert("Import Successful!");
+	doAlert("Import Successful!", "", "success");
 	// Clear the import stuff.
 	removeImportBox();
 }
@@ -699,17 +699,21 @@ function doExport() {
 	// Show the box (and everything else).
 	prepImport();
 	// Give success message and instructions.
-	alert("Export Successful. Copy this for your own records.\n\nHit 'Cancel' when you're done.");
+	doAlert("", "Copy this for your own records.<br><br>Hit 'Cancel' when you're done.", "info");
 }
 
 // Save current info to the browser, if possible.
-function saveCustom() {
+function saveCustom(test = false) {
 	if(!Customizable) {
-		alert("Your browser does not support Local Storage and cannot save your information.");
+		doAlert("", "Your browser does not support Local Storage and cannot save your information.", "error");
 		return;
-	} else if (CustomInfo && !confirm("You already have information saved. Do you want to overwrite it?")) {
-		alert("Previous information saved.");
-		return;
+	} else if (CustomInfo && !test) {
+		return doConfirm(
+			"Warning!",
+			"You already have information saved. Do you want to overwrite it?",
+			function() {saveCustom(true);},
+			function() {doAlert("Previous information saved.", "Nothing overwritten.", "success");},
+			"warning", "Yes", "No");
 	}
 	localStorage.setItem("CustomCats",		$("#cats").val());
 	localStorage.setItem("CustomRewrite",	$("#rewrite").val());
@@ -735,20 +739,24 @@ function saveCustom() {
 	// Set predef drop-down to Custom.
 	$("#predef").val("-1");
 	// Alert success.
-	alert("Saved to browser.");
+	doAlert("Saved to browser.", "", "success");
 }
 
 // Remove stored information from the browser.
-function clearCustom() {
+function clearCustom(test = false) {
 	if(!Customizable) {
-		alert("Your browser does not support Local Storage and cannot save your information.");
+		doAlert("Sorry!", "Your browser does not support Local Storage and cannot save your information.", "error");
 		return;
 	} else if (!CustomInfo) {
-		alert("You don't have anything saved.");
+		doAlert("", "You don't have anything saved.", "error");
 		return;
-	} else if (!confirm("Are you sure you want to delete your saved settings?")) {
-		alert("Settings kept.");
-		return;
+	} else if (CustomInfo && !test) {
+		return doConfirm(
+			"Warning!",
+			"Are you sure you want to delete your saved settings?",
+			function() {clearCustom(true);},
+			function() {doAlert("Settings kept.", "", "success");},
+			"warning", "Yes", "No");
 	}
 	// Clear storage.
 	["CustomCats","CustomRewrite","CustomSing","CustomSyls","CustomWrdi","CustomWrdf",
@@ -760,7 +768,7 @@ function clearCustom() {
 	// Remove "Custom" from drop-down menu.
 	$("#predef option[value=-1]").remove();
 	// Alert success.
-	alert("Cleared from browser.");
+	doAlert("Cleared from browser.", "", "success");
 }
 
 // Display the IPA and other stuff.
@@ -925,7 +933,7 @@ function loadThisPredef(defN) {
 			$("#monoFrequent,#dropoffSlow").prop("checked", true);
 			break;
 		default: // Null
-			return alert("Choose something from the list, first.");
+			return doAlert("", "Choose something from the list, first.", "error");
 	}
 	syllablicChangeDetection($("#onetype")[0]);
 }
@@ -976,3 +984,45 @@ if(typeof(Storage) !== "undefined") {
 $("#onetype").change(function() { syllablicChangeDetection($("#onetype")[0]); });
 // Fire it right now.
 syllablicChangeDetection($("#onetype")[0]);
+
+
+
+
+// Use SweetAlert2 if available!
+function doAlert(title, text, type) {
+	if(Swal !== undefined) {
+		// We has it!
+		Swal.fire({
+			type: type,
+			title: title,
+			html: text,
+			customClass: "doAlertBox",
+			buttonsStyling: false
+		});
+	} else {
+		// We don't has it.
+		alert(title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""));
+	}
+}
+function doConfirm(title, text, yesFunc, noFunc, type = "question", yes = "Ok", no = "Cancel") {
+	if(Swal !== undefined) {
+		// We has it!
+		Swal.fire({
+			title: title,
+			html: text,
+			type: type,
+			showCancelButton: true,
+			confirmButtonText: yes,
+			cancelButtonText: no,
+			customClass: "doAlertBox",
+			buttonsStyling: false
+		}).then((result) => result.value ? yesFunc() : noFunc() );
+	} else {
+		// We don't has it.
+		if(confirm(title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""))) {
+			yesFunc();
+		} else {
+			noFunc();
+		}
+	}
+}
