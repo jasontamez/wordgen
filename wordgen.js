@@ -990,7 +990,7 @@ syllablicChangeDetection($("#onetype")[0]);
 
 // Use SweetAlert2 if available!
 function doAlert(title, text, type) {
-	if(Swal !== undefined) {
+	if(typeof(Swal) !== 'undefined') {
 		// We has it!
 		Swal.fire({
 			type: type,
@@ -1001,11 +1001,11 @@ function doAlert(title, text, type) {
 		});
 	} else {
 		// We don't has it.
-		alert(title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""));
+		alert((title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "")).trim());
 	}
 }
 function doConfirm(title, text, yesFunc, noFunc, type = "question", yes = "Ok", no = "Cancel") {
-	if(Swal !== undefined) {
+	if(typeof(Swal) !== 'undefined') {
 		// We has it!
 		Swal.fire({
 			title: title,
@@ -1019,7 +1019,7 @@ function doConfirm(title, text, yesFunc, noFunc, type = "question", yes = "Ok", 
 		}).then((result) => result.value ? yesFunc() : noFunc() );
 	} else {
 		// We don't has it.
-		if(confirm(title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""))) {
+		if(confirm((title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "")).trim())) {
 			yesFunc();
 		} else {
 			noFunc();
