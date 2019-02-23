@@ -186,7 +186,7 @@ button:active {
 	font-size: 16px;
 	display: none;
 	text-align: center;
-	width: 220px;
+	width: 26em;
 	box-sizing: border-box;
 	z-index: 3;
 	background: var(--info-bg);
@@ -591,6 +591,9 @@ table {
 	}
 	#parameters div	{
 		margin-right: 0;
+	}
+	.info {
+		width: 14em;
 	}
 
 }
