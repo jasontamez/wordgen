@@ -1,14 +1,39 @@
 /*Colors */
 :root {
-	--focus: #acd;
-	--shadow: #33f;
-	--advanced-bg: #bcd;
-	--section-bg: #cde;
-	--disabled-fg: #000;
-	--disabled-bg: #fff;
-	--info-bg: #f0f0f9;
-	--header-fg: #235;
+
+	--link-hover-color: #600;
+	--link-border: #89b;
+	--link-hover-border: #933;
+	--link-hover-bg: #eef;
+	--accent-fg: #fff;
+	--accent-bg: #679;
+	--accent-border: #f9f9ff;
+	--input-bg: #E3F3F0;
+	--input-border: #4D717A;
+
+	--main-border: #030F0C;
+	--main-fg: #0E1116;
+	--main-bg: #BEE4DC;
+	--accept-fg: #F7FFF7;
+	--accent-bg: #0B3C49;
+	--input-bg: #F7FFF7;
+	--accent-border: #214D59;
+	--advanced-bg: #8CC2B7;
+	--info-bg: #D2DBDD;
+
+	--shadow: #0E1116BB;
+	--focus: #214D59BB;
+
+	--disabled-bg: #99D5C9;
+	--disabled-fg: #0E1116;
+
+	--button-bg: var(--accent-fg);
+	--button-fg: var(--header-fg);
+	--button-border: var(--accent-bg);
+	--button-bg-faded: #fff6;
+	--button-border-faded: #0B3C49cc;
 }
+
 
 /* Fonts */
 
@@ -50,14 +75,35 @@ button,
 textarea,
 input {
 	outline: none;
+	box-sizing: border-box;
 }
-button:focus,
+input,
+textarea {
+	font-family: Consolas,"Courier New",monospace;
+}
+input,
+textarea,
+select {
+	background: var(--input-bg);
+	border-color: var(--input-border);
+	border-width: 1px;
+	border-style: solid;
+	outline: none;
+}
+input[type=radio],
+input[type=checkbox] {
+	margin-right: 0.5em;
+}
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
 	box-shadow: 0 0 5px 1px var(--focus);
 }
 input:focus {
 	outline: var(--focus) solid 2px;
+}
+input[type=radio]:focus {
+	outline: none;
 }
 h2 {
 	text-align: left;
@@ -66,15 +112,81 @@ h2 {
 	padding: initial;
 }
 body {
+	color: var(--main-fg);
+	background: var(--main-bg);
 	font-family: "Noto Sans",Arial,sans-serif;
 	margin: 0;
 	padding: 0.5em;
-	border: 0;
-	font-size: 1em;
+	border-width: 0 calc((100vw - 48em) / 2);
+	border-style: solid;
+	border-color: var(--main-border);
+	word-wrap: break-word;
+	/* font-size: calc((100vw - 35em) * 4 / 1300 + 16px); */
+}
+body.evolve {
+	border-width: 0 calc((100vw - 50em) / 2);
+}
+body.noOverflow {
+	overflow: hidden;
+}
+a:link,
+a:visited {
+	text-decoration: none;
+	border-bottom: 1px dashed var(--link-border);
+	color: var(--main-fg);
+	background: inherit;
+}
+a:active {
+	text-decoration: none;
+	border-bottom: 1px dashed var(--accent-border);
+	color: var(--accent-bg);
+	background: inherit;
+}
+a:hover {
+	text-decoration: none;
+	border-bottom: 1px dashed var(--link-hover-border);
+	color: var(--link-hover-color);
+	background: var(--link-hover-bg) !important;
+}
+div.links div {
+	font-size: 14px;
+	font-family: "courier new",monospace;
+	text-align: center;
+	margin: 0.1em auto;
+}
+div.links div.set-apart {
+	margin-top: 0.3em;
+}
+div.links-nav div a {
+	border: 0 !important;
+}
+div.links-nav div a:before {
+	content:"[";
+}
+div.links-nav div a:after {
+	content:"]";
+}
+.hidden {
+	display: none !important;
+}
+header {
+	text-align: left;
+	color: var(--accent-fg);
+	font-size: 1.5em;
+	font-weight: bold;
+	line-height: 1.15;
+}
+header.minor {
+	border-top: 1px solid;
+	padding: 1em 0;
+	color: var(--header-fg);
+	font-size: 1.17em;
+	margin: 1em 0;
+	background: transparent;
 }
 #title {
 	background: var(--accent-bg);
-	padding: 2em 0 0.2em 1.5em;
+	padding: 2.4em 0 1.2em 1em;
 }
 .lexicon {
 	display: grid;
@@ -89,11 +201,13 @@ body {
 }
 p.desc {
 	font-style: italic;
+	border: 0;
 	border-bottom: 1px solid;
-	max-width: 750px;
+	max-width: 44em;
 	text-indent: -1em;
 	padding: 0 2em 1em 2em;
-	padding-right: calc(100vw - 750px - 2em);
+	padding-right: calc(100% - 45em);
+
 }
 p.desc a {
 	font-weight: bold;
@@ -131,20 +245,40 @@ h3 {
 	vertical-align: baseline;
 }
 button {
-	background: var(--accent-fg);
-	color: var(--header-fg);
+	background: var(--button-bg);
+	color: var(--button-fg);
 	font-weight: bold;
 	font-size: 0.85em;
 	border-width: 2px;
 	border-style: outset;
-	border-color: var(--accent-bg);
+	border-color: var(--button-border);
 	padding: 3px 0.5em 2px;
 	margin-left: 0.7em;
 	margin-bottom: 1em;
 }
+button.minor {
+	font-size: 75%;
+	background: var(--button-bg-faded);
+	border-color: var(--button-border-faded);
+}
+#parameters.evolve button {
+	margin: 0.25em 0 0.25em 0.5em;
+}
+button:hover {
+	background: var(--button-bg);
+	color: var(--button-fg);
+	border-color: var(--button-border);
+}
+button:focus {
+	box-shadow: 0 0 5px 1px var(--focus);
+	border-color: var(--button-border);
+}
 button:active {
+	background: var(--button-bg);
+	color: var(--button-fg);
 	border-style: inset;
 	box-shadow: 0 0 3px 1px var(--shadow);
+	padding: 3px 0.45em 2px 0.55em;
 }
 .buttongroup {
 	white-space: nowrap;
@@ -175,6 +309,7 @@ button:active {
 	font-size: 0.7em;
 	vertical-align: top;
 	font-style: normal;
+	font-weight: normal;
 }
 .help {
 	cursor: help;
@@ -199,6 +334,9 @@ button:active {
 	left: 0;
 	top: 0.7em;
 }
+.info.shown {
+	display: block;
+}
 em.two {
 	font-style: normal;
 	text-decoration: underline;
@@ -210,6 +348,7 @@ em.two {
 	background: var(--accent-bg);
 	border-color: var(--accent-border);
 	color: var(--main-bg);
+	color: var(--accent-fg);
 	font-style: italic;
 	font-size: 0.7em;
 	margin-bottom: 0;
@@ -307,6 +446,7 @@ table tr td {
 	left: 0;
 	min-width: 100%;
 	min-height: 100%;
+	max-height: 100%;
 	padding: 0;
 	margin: 0;
 	border: 0;
@@ -317,9 +457,19 @@ table tr td {
 }
 #importBoxArea div {
 	margin: 0 auto;
+	display: inline-block;
 }
 #importTextBox {
 	margin: 1em auto;
+}
+#importBoxArea .msg.hidden {
+	display: none;
+}
+#importBoxArea .msg {
+	display: inline-block;
+	background: var(--advanced-bg);
+	border: 8px solid var(--advanced-bg);
+	border-radius: 8px;
 }
 
 body.tutorial-page p {
@@ -330,7 +480,7 @@ body.tutorial-page p {
 body.tutorial-page p.desc {
 	text-align: justify;
 	max-width: 600px;
-	padding: 0 calc(50vw - 300px - 0.5em) 1.5em;
+	padding: 0 auto 1.5em;
 }
 body.tutorial-page div.example-textbox {
 	display: flex;
@@ -390,9 +540,6 @@ body.tutorial-page ol li ul {
 body.tutorial-page p.lead-into-next {
 	margin-bottom: 0;
 }
-.multiswap {
-	display: none;
-}
 table {
 	width: 100%;
 }
@@ -411,7 +558,10 @@ table {
 	margin-top: 1em;
 }
 
-#parameters {
+
+
+#parameters,
+.soundChangeEffects {
 	/* Fallback values for grid-noncompliant browsers */
 	display: flex;
 	flex-flow: row wrap;
@@ -426,6 +576,32 @@ table {
 #parameters div:last-child {
 	margin-right: 0;
 }
+#p_output div:first-child {
+	font-weight: bold;
+	margin: 0 0 0.5em;
+}
+.soundChangeEffects {
+	margin-bottom: 1em;
+	text-align: left;
+}
+#outputText .soundChangeEffects span {
+	display: contents;
+	font-size: 1em;
+	line-height: 1.25;
+	text-align: left;
+	padding: 0 0.25em;
+}
+.soundChangeEffects span:nth-child(5n) {
+	/* Make sure we always form a new row after this many spans. */
+	page-break-after: always;
+	break-after: page;
+}
+.soundChangeEffects span:nth-child(5n)::after {
+	content: '';
+	width: 100%;
+}
+.narrowArrow {
+	display: none;
 }
 
 @supports (display: grid) {
@@ -433,159 +609,278 @@ table {
 		/* Grid values */
 		display: grid;
 		grid-template-areas:
-			"cat     rewrite wis  ots"
-			"cat     rewrite wis  sws"
-			"cat     rewrite wis  mws"
-			"outtype dropoff mono mws"
-			"outtype dropoff mono wfs"
-			"syl     dropoff mono wfs";
-		grid-template-columns: minmax(20em, max-content) minmax(20em, max-content) minmax(11em, max-content) auto;
-		grid-template-rows: minmax(2.5em, max-content) minmax(5.5em, max-content) minmax(3em, max-content) minmax(2.5em, max-content) minmax(5.5em, max-content) auto;
+			"cats    cats    rewrite rewrite rewrite"
+			"onetype onetype onetype onetype onetype"
+			"init    single  single  single  final"
+			"init    mid     mid     mid     final"
+			"outtype dropoff dropoff mono    mono"
+			"showsyl dropoff dropoff mono    mono";
+		grid-template-columns: minmax(15em, max-content) minmax(8em, max-content) minmax(2em, max-content) minmax(6em, max-content) minmax(15em, max-content);
+		grid-template-rows: minmax(12em, max-content) minmax(2.5em, max-content) minmax(6.5em, max-content) minmax(7em, max-content) 7.4em auto;
 		grid-gap: 0 0;
 		justify-items: start;
 		align-items: start;
 		justify-content: start;
 		align-content: start;
+		box-sizing: border-box;
+	}
+	#parameters.evolve {
+		grid-template-areas:
+			"cats    change input"
+			"rewrite change input"
+			"opt     change input"
+			"opt     result output";
+		grid-template-columns: minmax(15em, max-content) minmax(15.5em, max-content) minmax(15.5em, max-content);
+		grid-template-rows: minmax(13em, max-content) minmax(13.5em, max-content) minmax(8em, max-content) auto;
+		align-items: start;
+		grid-gap: 0 0.5em;
+		justify-content: center;
 	}
 	#parameters textarea {
-		margin-bottom: 0.5em;
+		/*margin-bottom: 0.5em;*/
 		box-sizing: border-box;
 	}
 	#parameters div {
 		margin-right: 0;
 		margin-bottom: 0;
 	}
+	/* Textarea/Input ems are 80% of other ems, so we multiply by 1.25 to convert. */
+	textarea.tallbox {
+		width: 19.375em; /* 15.5em by 33em */
+		height: 41.25em;
+	}
 	textarea.bigbox {
-		width: 22.65em;
-		height: 11.5em;
+		width: 28.125em; /* 22.5em by 11.5em */
+		height: 14.375em;
 	}
 	textarea.midbox {
-		width: 12.15em;
-		height: 11.5em;
+		width: 18.75em; /* 15em by 11.5em */
+		height: 14.375em;
+	}
+	textarea.midbox {
+		width: 18.75em; /* 15em by 11.5em */
+		height: 14.375em;
 	}
 	textarea.littlebox {
-		width: 12.15em;
-		height: 4.6em;
+		width: 18.75em;  /* 15em by 5em */
+		height: 6.25em;
 	}
-	#p_cat {
-		grid-area: cat;
+	/* Tutorial page */
+	body.tutorial-page textarea.bigbox {
+		width: 20em;
+	}
+	body.tutorial-page textarea.littlebox {
+		width: 10em;
+		height: 8em;
+	}
+	body.tutorial-page textarea.kartarabox {
+		width: 20em;
+	}
+	textarea.line1 {
+		height: 1.75em;
+	}
+	textarea.line2 {
+		height: 2.75em;
+	}
+	textarea.line3 {
+		height: 3.85em;
+	}
+	textarea.line4 {
+		height: 5em;
+	}
+	textarea.line7 {
+		height: 8.35em;
+	}
+	textarea.line8 {
+		height: 9.5em;
+	}
+	/* GenWord */
+	#p_categories {
+		grid-area: cats;
 	}
 	#p_rewrite {
 		grid-area: rewrite;
+		justify-self: end;
 	}
-	#p_wis {
-		grid-area: wis;
+	#parameters.evolve #p_rewrite {
+		justify-self: start;
 	}
-	#p_sws {
-		grid-area: sws;
+	#p_wordInitial {
+		grid-area: init;
 	}
-	#p_mws {
-		grid-area: mws;
+	#p_singleWord {
+		grid-area: single;
+		justify-self: center;
 	}
-	#p_outtype {
+	#p_midWord {
+		justify-self: center;
+		grid-area: mid;
+	}
+	#p_outType {
 		grid-area: outtype;
 	}
 	#p_dropoff {
 		grid-area: dropoff;
+		justify-self: center;
 	}
-	#p_mono {
+	#p_monoRate {
 		grid-area: mono;
 	}
-	#p_wfs {
-		grid-area: wfs;
+	#p_wordFinal {
+		grid-area: final;
 	}
-	#p_syl {
-		grid-area: syl;
+	#p_showSyls {
+		grid-area: showsyl;
 	}
-	#p_ots {
-		grid-area: ots;
+	#p_oneType {
+		grid-area: onetype;
+		padding: 0.5em 1em;
 	}
-
+	#p_input {
+		grid-area: input;
+	}
+	#parameters.evolve #p_result {
+		grid-area: result;
+	}
+	#parameters.evolve #p_result div:first-child {
+		margin-bottom: 0.5em;
+		font-weight: bold;
+	}
+	#parameters.evolve #p_output {
+		grid-area: output;
+		margin: 0;
+	}
+	#parameters.evolve #outputText {
+		font-size: 90%;
+	}
+	#p_change {
+		grid-area: change;
+	}
+	#p_opt {
+		grid-area: opt;
+	}
+	#p_opt .buttongroup {
+		margin: 0.5em 0;
+		display: block;
+	}
+	.soundChangeEffects {
+		display: grid;
+		grid-template-columns: auto auto auto auto auto;
+		grid-gap: 0 0;
+		justify-items: start;
+		align-items: start;
+		justify-content: start;
+		align-content: start;
+	}
+	#outputText .soundChangeEffects span {
+		/* This messes up stuff on Chrome unless it's gridded. */
+		display: inline-block;
+	}
 
 	/*Smaller screens */
 
-	@media only screen and (max-width: 1010px) {
+	@media only screen and (max-width: 50em) {
 
 		#parameters {
 			grid-template-areas:
-				"cat     wis     ots"
-				"cat     wis     mws"
-				"cat     wis     wfs"
-				"rewrite sws     wfs"
-				"rewrite dropoff wfs"
-				"rewrite dropoff mono"
-				"outtype dropoff mono"
-				"outtype syl     mono"
-				"outtype syl     ."
-				"outtype syl     .";
-			grid-template-columns: minmax(21em, max-content) minmax(12em, max-content) auto;
-			grid-template-rows: repeat(10, auto);
+				"cats    cats"
+				"rewrite rewrite"
+				"onetype onetype"
+				"init    single"
+				"init    mid"
+				"outtype final"
+				"showsyl final"
+				"mono    final"
+				"mono    dropoff";
+			grid-template-columns: minmax(15.5em, max-content) minmax(15.5em, max-content);
+			grid-template-rows: minmax(12em, max-content) minmax(12em, max-content) minmax(2.5em, max-content) minmax(6.5em, max-content) minmax(7em, max-content) auto auto auto auto;
+			justify-content: center;
 		}
+		#parameters.evolve {
+			grid-template-areas:
+				"cats    cats"
+				"change  input"
+				"rewrite result"
+				"opt     result"
+				"opt     output";
+			grid-template-columns: minmax(15.5em, max-content) minmax(15.5em, max-content);
+			grid-template-rows: minmax(13em, max-content) minmax(22em, max-content) minmax(13em, max-content) auto auto;
 		}
-
+		#parameters.evolve textarea.tallbox {
+			height: 25em; /* 20em */
+		}
+		#p_wordFinal,
+		#p_singleWord,
+		#p_midWord,
+		#p_rewrite,
+		#p_categories {
+			justify-self: center;
+		}
+		#parameters.evolve #p_result {
+			margin-bottom: 2.5em;
+		}
 	}
 
-	@media only screen and (max-width: 740px) {
+
+	@media only screen and (max-width: 35em) {
 
 		#parameters {
 			grid-template-areas:
-				"cat     cat     wis"
-				"rewrite rewrite ots"
-				"rewrite rewrite sws"
-				"rewrite rewrite mws"
-				"outtype outtype mws"
-				"outtype outtype wfs"
-				"outtype outtype wfs"
-				"syl     syl     wfs"
-				"dropoff mono    wfs"
-				"dropoff mono    .";
-			grid-template-columns: minmax(10em, max-content) minmax(10em, max-content) auto;
-			grid-template-rows: repeat(10, auto);
+				"cats"
+				"rewrite"
+				"onetype"
+				"init"
+				"mid"
+				"final"
+				"single"
+				"outtype"
+				"showsyl"
+				"dropoff"
+				"mono";
+			grid-template-columns: auto;
+			grid-template-rows: repeat(11, auto);
 			grid-row-gap: 0.5em;
 		}
 		#parameters textarea {
 			margin-bottom: 0;
 		}
-	
-	}
-
-	}
-
-	@media only screen and (max-width: 515px) {
-
-		#parameters {
-			grid-template-areas:
-				"cat     cat     cat     ."
-				"rewrite rewrite rewrite ."
-				"wis     wis     ots     ots"
-				"sws     sws     sws     ."
-				"mws     mws     mws     ."
-				"wfs     wfs     wfs     ."
-				"outtype outtype outtype ."
-				"syl     syl     syl     ."
-				"dropoff mono    mono    mono";
-			grid-template-columns: minmax(8em, max-content) minmax(3em, max-content) auto auto;
-			grid-template-rows: repeat(9, auto);
-			grid-row-gap: 0.5em;
-			margin-bottom: 1em;
-			justify-content: center;
+		#p_wordFinal,
+		#p_singleWord,
+		#p_midWord,
+		#p_dropoff {
+			justify-self: start;
 		}
-
+		#parameters.evolve {
+			grid-template-areas:
+				"cats"
+				"change"
+				"input"
+				"rewrite"
+				"opt"
+				"result"
+				"output";
+			grid-template-columns: minmax(11em, max-content);
+			grid-template-rows: minmax(13em, max-content) minmax(21.5em, max-content) minmax(21.5em, max-content) minmax(13em, max-content) auto auto auto;
+		}
+		#parameters.evolve textarea.tallbox {
+			width: 18.75em;  /* 11em */
+		}
+		.wideArrow {
+			display: none;
+		}
+		.narrowArrow {
+			display: inline;
+		}
+	
 	}
 
 }
 
-
 /* Smaller screens */
 
 
-@media only screen and (max-width: 800px) {
+@media only screen and (max-width: 50em) {
 
-	p.desc {
-		padding: 0 2em 1em 2em;
-		text-indent: 1em;
-		text-align: justify;
-	}
 	body.tutorial-page p {
 		padding: 0 1em 1em 1em;
 	}
@@ -598,7 +893,19 @@ table {
 
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 47em) {
+	body {
+		border: 0;
+	}
+	p.desc {
+		padding: 0 2em 1em 2em;
+		text-indent: 1em;
+		text-align: justify;
+	}
+}
+
+
+@media only screen and (max-width: 44em) {
 
 	body.tutorial-page p.desc {
 		padding: 0 2em 1em 2em;

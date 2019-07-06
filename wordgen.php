@@ -11,7 +11,6 @@ header("Last-Modified: ".date(DATE_RFC1123, $x));
 <meta name="theme-color" content="#001144">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <link rel="stylesheet" type="text/css" href="css/reset.css">
-<link rel="stylesheet" type="text/css" href="css/tank01.css">
 <link rel="stylesheet" type="text/css" href="css/wordgen01.css">
 </head> 
 <body>
