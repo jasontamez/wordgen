@@ -193,7 +193,6 @@ header.minor {
 	grid-template-columns: repeat(auto-fit, minmax(10em, 1fr) );
 	grid-column-gap: 1em;
 	grid-row-gap: 0.25em;
-	/*overflow: auto;*/
 	border: 0;
 	margin: 0;
 	padding: 0;
