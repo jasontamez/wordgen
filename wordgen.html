@@ -134,17 +134,20 @@ CRV</textarea>
 				save it for your own records, and use <strong>Import Settings</strong> to reload it at a later date.</span></span></div>
 		</div>
 		<div>
-			<div><strong>Table cell size:</strong><br><input type="number" value="10" id="wordLengthInEms">em
+			<div><strong>Table cell size:</strong><br><input type="number" value="10" min="0" max="1000" id="wordLengthInEms">em
 				<span class="help popOut">?<span class="info">When using a Wordlist as an <strong>Output type</strong>, this determines
 				how much space each word will take up. Modify this if the words you're generating are larger (or much smaller) than
-				the space the Wordlist is giving you.</span></span></div>
-			<div><strong>Wordlist size:</strong><br><input type="number" value="150" id="lexiconLength"> words
-				<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output Type</strong>, it will output this many words.</span></span></div>
-			<div><strong>Giant wordlist:</strong><br><input type="number" value="750" id="largeLexiconLength"> words
-				<span class="help popOut">?<span class="info">When you use Giant Wordlist as an <strong>Output Type</strong>, it will output this many words.</span></span></div>
-			<div><strong>Pseudo-text size:</strong><br><input type="number" value="30" id="sentences"> sentences
+				the space the Wordlist is giving you. Maximum 1000.</span></span></div>
+			<div><strong>Wordlist size:</strong><br><input type="number" value="150" min="1" max="1000" id="lexiconLength"> words
+				<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output Type</strong>, it will output
+				this many words. Maximum 1000.</span></span></div>
+			<div><strong>Giant wordlist:</strong><br><input type="number" value="750" min="1" max="5000" id="largeLexiconLength"> words
+				<span class="help popOut">?<span class="info">When you use Giant Wordlist as an <strong>Output Type</strong>, it will output
+				this many words. Maximum 5000.</span></span></div>
+			<div><strong>Pseudo-text size:</strong><br><input type="number" value="30" min="1" max="500" id="sentences"> sentences
 				<span class="help popOut">?<span class="info">When you use Text output as your <strong>Output Type</strong>, it will output
-				this many sentences. (Sentences are between 1 and 15 words long, strongly favoring the middle of that range.)</span></span></div>
+				this many sentences. (Sentences are between 1 and 15 words long, strongly favoring the middle of that range. 500 sentences
+				maximum.)</span></span></div>
 			<div><strong>Rewrite separator:</strong><br><input type="text" value="||" id="rewSep"><span class="help popOut">?<span class="info">Defines
 				the plain text that separates the search expression from the replacement expression in <strong>Rewrite Rules</strong></span></span></div>
 		</div>
