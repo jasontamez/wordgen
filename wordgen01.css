@@ -76,6 +76,7 @@ textarea,
 input {
 	outline: none;
 	box-sizing: border-box;
+	max-width: calc(100vw - 2rem);
 }
 input,
 textarea {
@@ -86,7 +87,7 @@ textarea,
 select {
 	background: var(--input-bg);
 	border-color: var(--input-border);
-	border-width: 1px;
+	border-width: 0.05em;
 	border-style: solid;
 	outline: none;
 }
@@ -97,10 +98,10 @@ input[type=checkbox] {
 textarea:focus,
 input:focus,
 select:focus {
-	box-shadow: 0 0 5px 1px var(--focus);
+	box-shadow: 0 0 0.375em 0.05em var(--focus);
 }
 input:focus {
-	outline: var(--focus) solid 2px;
+	outline: var(--focus) solid 0.1em;
 }
 input[type=radio]:focus {
 	outline: none;
@@ -132,24 +133,24 @@ body.noOverflow {
 a:link,
 a:visited {
 	text-decoration: none;
-	border-bottom: 1px dashed var(--link-border);
+	border-bottom: 0.05em dashed var(--link-border);
 	color: var(--main-fg);
 	background: inherit;
 }
 a:active {
 	text-decoration: none;
-	border-bottom: 1px dashed var(--accent-border);
+	border-bottom: 0.05em dashed var(--accent-border);
 	color: var(--accent-bg);
 	background: inherit;
 }
 a:hover {
 	text-decoration: none;
-	border-bottom: 1px dashed var(--link-hover-border);
+	border-bottom: 0.05em dashed var(--link-hover-border);
 	color: var(--link-hover-color);
 	background: var(--link-hover-bg) !important;
 }
 div.links div {
-	font-size: 14px;
+	font-size: 0.875rem;
 	font-family: "courier new",monospace;
 	text-align: center;
 	margin: 0.1em auto;
@@ -177,7 +178,7 @@ header {
 	line-height: 1.15;
 }
 header.minor {
-	border-top: 1px solid;
+	border-top: 0.05em solid;
 	padding: 1em 0;
 	color: var(--header-fg);
 	font-size: 1.17em;
@@ -193,6 +194,7 @@ header.minor {
 	grid-template-columns: repeat(auto-fit, minmax(10em, 1fr) );
 	grid-column-gap: 1em;
 	grid-row-gap: 0.25em;
+	/*overflow: auto;*/
 	border: 0;
 	margin: 0;
 	padding: 0;
@@ -201,7 +203,7 @@ header.minor {
 p.desc {
 	font-style: italic;
 	border: 0;
-	border-bottom: 1px solid;
+	border-bottom: 0.05em solid;
 	max-width: 44em;
 	text-indent: -1em;
 	padding: 0 2em 1em 2em;
@@ -212,28 +214,31 @@ p.desc a {
 	font-weight: bold;
 }
 .links {
-	border-top: 1px solid;
+	border-top: 0.05em solid;
 }
 h3 {
-	border-top: 1px solid;
+	border-top: 0.05em solid;
 	padding-top: 1em;
 	color: var(--header-fg);
 }
 #outputText {
-	margin: 1.5em 0 2em 0;
+	margin: 0.5em 0 1em 0;
 }
-#outputText span {
+#outputText span,
+#p_chars span {
 	font-family: "Charis SIL",CharisSILWeb,"Noto Serif",Georgia,serif;
 	font-size: 1.25em;
 	text-align: center;
 	min-width: 1.5em;
 	line-height: 2;
 }
-#outputText span.desc {
+#outputText span.desc,
+#p_chars span.desc {
 	font-family: "Noto Sans",Arial,sans-serif;
 	font-weight: bold;
 }
-#outputText .extraGroup {
+#outputText .extraGroup,
+#p_chars .extraGroup {
 	display: flex;
 	flex-flow: row wrap;
 	justify-content: flex-start;
@@ -248,10 +253,10 @@ button {
 	color: var(--button-fg);
 	font-weight: bold;
 	font-size: 0.85em;
-	border-width: 2px;
+	border-width: 0.1em;
 	border-style: outset;
 	border-color: var(--button-border);
-	padding: 3px 0.5em 2px;
+	padding: 0.15em 0.5em 0.1em;
 	margin-left: 0.7em;
 	margin-bottom: 1em;
 }
@@ -269,15 +274,15 @@ button:hover {
 	border-color: var(--button-border);
 }
 button:focus {
-	box-shadow: 0 0 5px 1px var(--focus);
+	box-shadow: 0 0 0.375em 0.05em var(--focus);
 	border-color: var(--button-border);
 }
 button:active {
 	background: var(--button-bg);
 	color: var(--button-fg);
 	border-style: inset;
-	box-shadow: 0 0 3px 1px var(--shadow);
-	padding: 3px 0.45em 2px 0.55em;
+	box-shadow: 0 0 0.15em 0.05em var(--shadow);
+	padding: 0.15em 0.45em 0.1em 0.55em;
 }
 .buttongroup {
 	white-space: nowrap;
@@ -317,16 +322,16 @@ button:active {
 }
 .info {
 	cursor: help;
-	font-size: 16px;
+	font-size: 1rem;
 	display: none;
 	text-align: center;
 	width: 26em;
 	box-sizing: border-box;
 	z-index: 3;
 	background: var(--info-bg);
-	border: 3px double var(--accent-bg);
+	border: 0.15em double var(--accent-bg);
 	margin: 0;
-	padding: 10px;
+	padding: 0.625em;
 	line-height: 1.1;
 	white-space: normal;
 	position: absolute;
@@ -353,7 +358,7 @@ em.two {
 	margin-bottom: 0;
 }
 #advancedClosed button:active {
-	box-shadow: 0 0 2px 0 var(--shadow);
+	box-shadow: 0 0 0.1em 0 var(--shadow);
 }
 #advancedOpen {
 	display: flex;
@@ -467,18 +472,18 @@ table tr td {
 #importBoxArea .msg {
 	display: inline-block;
 	background: var(--advanced-bg);
-	border: 8px solid var(--advanced-bg);
-	border-radius: 8px;
+	border: 0.5rem solid var(--advanced-bg);
+	border-radius: 0.5rem;
 }
 
 body.tutorial-page p {
 	text-indent: 2em;
 	margin: 2em auto;
-	max-width: 700px;
+	max-width: 45rem;
 }
 body.tutorial-page p.desc {
 	text-align: justify;
-	max-width: 600px;
+	max-width: 37.5rem;
 	padding: 0 auto 1.5em;
 }
 body.tutorial-page div.example-textbox {
@@ -486,7 +491,7 @@ body.tutorial-page div.example-textbox {
 	flex-flow: row wrap;
 	justify-content: center;
 	margin: 2em auto;
-	max-width: 600px;
+	max-width: 37.5rem;
 }
 body.tutorial-page div.example-textbox div {
 	background: var(--section-bg);
@@ -500,12 +505,12 @@ body.tutorial-page div.example-textbox div textarea:disabled {
 }
 body.tutorial-page ul {
 	margin: 2em auto;
-	max-width: 600px;
+	max-width: 37.5em;
 }
 body.tutorial-page ol {
 	margin: 0 auto 2em;
 	padding: 0;
-	max-width: 600px;
+	max-width: 37.5em;
 	counter-reset: item;
 	box-sizing: border-box; 
 }
@@ -590,6 +595,9 @@ table {
 	text-align: left;
 	padding: 0 0.25em;
 }
+#outputText .soundChangeEffects span.arrow {
+	padding: 0 0.75em;
+}
 .soundChangeEffects span:nth-child(5n) {
 	/* Make sure we always form a new row after this many spans. */
 	page-break-after: always;
@@ -628,7 +636,8 @@ table {
 			"cats    change input"
 			"rewrite change input"
 			"opt     change input"
-			"opt     result output";
+			"opt     result output"
+			"opt     chars  chars";
 		grid-template-columns: minmax(15em, max-content) minmax(15.5em, max-content) minmax(15.5em, max-content);
 		grid-template-rows: minmax(13em, max-content) minmax(13.5em, max-content) minmax(8em, max-content) auto;
 		align-items: start;
@@ -682,13 +691,13 @@ table {
 		height: 2.75em;
 	}
 	textarea.line3 {
-		height: 3.85em;
+		height: 3.75em;
 	}
 	textarea.line4 {
 		height: 5em;
 	}
 	textarea.line7 {
-		height: 8.35em;
+		height: 8.25em;
 	}
 	textarea.line8 {
 		height: 9.5em;
@@ -752,6 +761,10 @@ table {
 	#parameters.evolve #outputText {
 		font-size: 90%;
 	}
+	#parameters.evolve #p_chars {
+		grid-area: chars;
+		font-size: 90%;
+	}
 	#p_change {
 		grid-area: change;
 	}
@@ -764,7 +777,7 @@ table {
 	}
 	.soundChangeEffects {
 		display: grid;
-		grid-template-columns: auto auto auto auto auto;
+		grid-template-columns: 1fr 1rem 1fr 1.25rem 1fr;
 		grid-gap: 0 0;
 		justify-items: start;
 		align-items: start;
@@ -774,6 +787,13 @@ table {
 	#outputText .soundChangeEffects span {
 		/* This messes up stuff on Chrome unless it's gridded. */
 		display: inline-block;
+		padding: 0;
+	}
+	#outputText .soundChangeEffects span.arrow {
+		padding: 0;
+	}
+	#outputText .soundChangeEffects span:nth-child(5n+4) {
+		padding: 0 0 0 0.15rem;
 	}
 
 	/*Smaller screens */
@@ -801,7 +821,8 @@ table {
 				"change  input"
 				"rewrite result"
 				"opt     result"
-				"opt     output";
+				"opt     output"
+				"opt     chars";
 			grid-template-columns: minmax(15.5em, max-content) minmax(15.5em, max-content);
 			grid-template-rows: minmax(13em, max-content) minmax(22em, max-content) minmax(13em, max-content) auto auto;
 		}
@@ -857,7 +878,8 @@ table {
 				"rewrite"
 				"opt"
 				"result"
-				"output";
+				"output"
+				"chars";
 			grid-template-columns: minmax(11em, max-content);
 			grid-template-rows: minmax(13em, max-content) minmax(21.5em, max-content) minmax(21.5em, max-content) minmax(13em, max-content) auto auto auto;
 		}
