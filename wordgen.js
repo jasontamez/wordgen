@@ -30,6 +30,33 @@ predefFilename = "/predefs.txt", // Where they are stored
 predefs = {}; // Used to store predefs
 
 
+// Helper functions to streamline some often-used function calls.
+function $i(x, doc = document) {
+	return doc.getElementById(x);
+}
+function $q(x, doc = document) {
+	return doc.querySelector(x);
+}
+function $a(x, doc = document) {
+	return doc.querySelectorAll(x);
+}
+function $e(tag, text = false, atts = false) {
+	var e = document.createElement(tag);
+	if(text !== false) {
+		e.textContent = text;
+	}
+	if(atts !== false) {
+		Object.entries(atts).forEach(pair => e.setAttribute(pair[0], pair[1]));
+	}
+	return e;
+}
+function $t(text) {
+	return document.createTextNode(text);
+}
+function $f() {
+	return document.createDocumentFragment();
+}
+
 
 // Trim elements of whitespace and remove blank elements from given array.
 function parseSyllables(input) {
@@ -250,7 +277,7 @@ function getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDro
 // Output a pseudo-text.
 function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	var	sent,w,nWord,output = "",
-		nSentences = getAdvancedNumber("#sentences", 30, 500);
+		nSentences = getAdvancedNumber($i("sentences"), 30, 500);
 	for (sent = 0; sent < nSentences; sent++) {
 		nWord = 1 + peakedPowerLaw(15, 5, 50);
 		for (w = 0; w < nWord; w++) {
@@ -263,32 +290,35 @@ function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 			output += " ";
 		}
 	}
-	return output;
+	return $t(output);
 }
 
 // Create a list of nLexTotal words
 function createLex(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) {
-	var	w,output = "<div class=\"lexicon\" style=\"grid-template-columns: repeat(auto-fit, minmax(" + getAdvancedNumber("#wordLengthInEms", 10, 1000) + "em, 1fr) )\">\n",
-		nLexTotal = getAdvancedNumber("#lexiconLength", 150, 1000);
+	var w,
+		output = $e("div"),
+		nLexTotal = getAdvancedNumber($i("lexiconLength"), 150, 1000);
+	output.classList.add("lexicon");
+	output.style.gridTemplateColumns = "repeat(auto-fit, minmax(" + getAdvancedNumber($i("wordLengthInEms"), 10, 1000).toString() + "em, 1fr) )";
 	for (w = 0; w < nLexTotal; w++) {
 		//if (w % 10 === 0) {
 		//	output += "<tr>";
 		//}
-		output += "<div>" + getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) + "</div>";
+		let frag = $e("div", getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop));
+		output.appendChild(frag);
 		//if (w % 10 === 9) {
 		//	output += "</tr>\n";
 		//}
 	}
-	output += "</table></div>\n";
 	return output;
 }
 
 // Create a list of nLexTotal * 5 words
 function createLongLex(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
-	var	w, output="",
-		nLexTotal = getAdvancedNumber("largeLexiconLength", 750, 5000);
-	for (w = 0; w < nLexTotal * 5; w++) {
-		output += getOneWord(false, monoRate, oneType, showSyls, dropoff, slowSylDrop) + "<br>\n";
+	var	w, output=$f(),
+		nLexTotal = getAdvancedNumber($i("largeLexiconLength"), 750, 5000);
+	for (w = 0; w < nLexTotal; w++) {
+		output.append(getOneWord(false, monoRate, oneType, showSyls, dropoff, slowSylDrop), $e("br"));
 	}
 	return output;
 }
@@ -311,6 +341,7 @@ function getAdvancedNumber(id, normal, max) {
 function getEverySyllable() {
 	// Set up an empty Set to hold generated syllables and an empty variable to hold transformed info.
 	var	setUp = new Set(),
+		frag = $f(),
 		output;
 	// Make a Set out of all syllables.
 	const syllables = new Set(midWordSyls.concat(wordInitSyls, wordFinalSyls, singleWordSyls));
@@ -324,7 +355,9 @@ function getEverySyllable() {
 	// Sort it.
 	output.sort();
 	// Join into HTML string and return output.
-	return output.join("<br>");
+	frag.appendChild($t(output.shift()));
+	output.forEach( syll => frag.append($e("br"), syll) );
+	return frag;
 }
 
 // Go through categories recursively, adding finished words to the given Set.
@@ -363,22 +396,19 @@ function recurseCategories(givenSet, input, toGo) {
 
 // A quick way to escape HTML characters by turning it into a text node and back again.
 function escapeHTML(html) {
-	var	text = document.createTextNode(html),
-		p = document.createElement('p');
-	p.appendChild(text);
-	return p.innerHTML;
+	return $e("p", html).innerHTML;
 }
 
 // User hit the action button.  Make things happen!
 function generate() {
-	var whichWay,counter,foo,bar,baz,output,tester,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff,tempArray,ncat;
+	var whichWay,counter,frag,foo,bar,baz,output,tester,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff,tempArray,ncat;
 	// Read parameters.
-	whichWay = document.querySelector("input[type=radio][name=outType]:checked").value;	// What output are we aiming for?
-	showSyls = document.getElementById("showSyls").checked;	// Do we show syllable breaks?
-	slowSylDrop = document.getElementById("slowSylDrop").checked;	// Do we (somewhat) flatten out the syllable dropoff?
-	oneType = document.getElementById("oneType").checked;	// Are we only using one syllable box?
-	monoRate = Number(document.querySelector("input[type=radio][name=monoRate]:checked").value);	// The rate of monosyllable words.
-	dropoff = Number(document.querySelector("input[type=radio][name=dropoff]:checked").value);	// How fast do the category runs flatten out?
+	whichWay = $q("input[type=radio][name=outType]:checked").value;	// What output are we aiming for?
+	showSyls = $i("showSyls").checked;	// Do we show syllable breaks?
+	slowSylDrop = $i("slowSylDrop").checked;	// Do we (somewhat) flatten out the syllable dropoff?
+	oneType = $i("oneType").checked;	// Are we only using one syllable box?
+	monoRate = Number($q("input[type=radio][name=monoRate]:checked").value);	// The rate of monosyllable words.
+	dropoff = Number($q("input[type=radio][name=dropoff]:checked").value);	// How fast do the category runs flatten out?
 
 	// Validate monosyllable selector.
 	if(monoRate !== monoRate || monoRate > 1.0) {
@@ -402,7 +432,7 @@ function generate() {
 	// Parse all those boxes for validness.
 
 	// Grab the category list.
-	baz = document.getElementById("categories").value;
+	baz = $i("categories").value;
 	// If the categories have changed, parse them.
 	if(baz !== previousCat) {
 		foo = baz.split(/\r?\n/);
@@ -427,7 +457,9 @@ function generate() {
 				//  OR the category doesn't have = as its second character...
 				//  OR the category has = somewhere else other than the second character...
 				// THEN this is a bad category.
-				errorMessages.push("<strong>Error:</strong>" + escapeHTML(thiscat) + "<br>Categories must be of the form V=aeiou<br>That is, a single letter, an equal sign, then a list of possible expansions.");
+				frag = $f();
+				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + thiscat, $e("br"), "Categories must be of the form V=aeiou", $e("br"), "That is, a single letter, an equal sign, then a list of possible expansions.");
+				errorMessages.push(frag);
 				// End the looping.
 				return false;
 			} else {
@@ -435,7 +467,9 @@ function generate() {
 				bar = thiscat.charAt(0);
 				if(categories.hasOwnProperty(bar)) {
 					// If we have defined this category before, throw an error.
-					errorMessages.push("<strong>Error:</strong> You have defined category " + escapeHTML(bar) + " more than once.");
+					frag = $f();
+					frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + "You have defined category " + thiscat + " more than once.");
+					errorMessages.push(frag);
 					return false;
 				} else {
 					// Add this category to the category index.
@@ -456,34 +490,34 @@ function generate() {
 
 	// Parse the syllable lists.
 	// Check each one to see if it's changed, first.
-	baz = document.getElementById("midWord").value;
+	baz = $i("midWord").value;
 	if(baz !== previousMidWordSyls) {
 		midWordSyls = parseSyllables(baz);
 		previousMidWordSyls = baz;
 	}
 
-	baz = document.getElementById("wordInitial").value;
+	baz = $i("wordInitial").value;
 	if(baz !== previousWordInitSyls) {
 		wordInitSyls = parseSyllables(baz);
 		previousWordInitSyls = baz;
 	}
 
-	baz = document.getElementById("wordFinal").value;
+	baz = $i("wordFinal").value;
 	if(baz !== previousWordFinalSyls) {
 		wordFinalSyls = parseSyllables(baz);
 		previousWordFinalSyls = baz;
 	}
 
-	baz = document.getElementById("singleWord").value;
+	baz = $i("singleWord").value;
 	if(baz !== previousSingleWordSyls) {
 		singleWordSyls = parseSyllables(baz);
 		previousSingleWordSyls = baz;
 	}
 
 	// Grab the rewrite rules.
-	baz = document.getElementById("rewrite").value;
+	baz = $i("rewrite").value;
 	// Find the splitter. (|| by default)
-	foo = document.getElementById("rewSep").value;
+	foo = $i("rewSep").value;
 	// If the rules have changed, parse them.
 	if(previousRew !== baz || foo !== rewSep) {
 		rewSep = foo;
@@ -503,7 +537,9 @@ function generate() {
 				nrew--;
 			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
 				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
-				errorMessages.push("<strong>Error:</strong>" + escapeHTML(rule) + "<br>Rewrite rules must be in the form x" + rewSep + "y<br>That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
+				frag = $f();
+				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
+				errorMessages.push(frag);
 				// End the looping.
 				return false;
 			} else {
@@ -529,19 +565,29 @@ function generate() {
 
 	// Check that categories exist.
 	if(categories.length <= 0) {
-		errorMessages.push("<strong>Missing:</strong> You must have categories to generate text.");
+		frag = $f();
+		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have categories to generate text.");
+		errorMessages.push(frag);
 	}
 
 	// Check that syllables exist.
 	if (oneType && wordInitSyls.length <= 0) {
-		errorMessages.push("<strong>Missing:</strong> You must have syllable types to generate text.");
+		frag = $f();
+		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have syllable types to generate text.");
+		errorMessages.push(frag);
 	} else if (!oneType && (midWordSyls.length <= 0 || wordInitSyls.length <= 0 || wordFinalSyls.length <= 0 || singleWordSyls.length <= 0)) {
-		errorMessages.push("<strong>Missing:</strong> You must have <em>all</em> syllable types to generate text.");
+		frag = $f();
+		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have" + String.fromCharCode(0x00a0), $e("em", "all"), String.fromCharCode(0x00a0) + "syllable types to generate text.");
+		errorMessages.push(frag);
 	}
 
 	// Print error message or requested data.
 	if (errorMessages.length > 0) {
-		output = errorMessages.join("<br><br>");
+		output = $f();
+		output.appendChild(errorMessages.shift());
+		errorMessages.forEach(function(f) {
+			output.append($e("br"), $e("br"), f);
+		});
 	} else {
 		// Actually generate text.
 		switch (whichWay) {
@@ -563,7 +609,8 @@ function generate() {
 	}
 
 	// Set the output field.
-	document.getElementById("outputText").innerHTML = output;
+	erase();
+	$i("outputText").appendChild(output);
 }
 
 // Calculate syllable dropoff percentage rate, based on the maximum number of candidates.
@@ -598,48 +645,51 @@ function calcDropoff(lengthOfCandidates, slowSylDrop) {
 
 // Simple function erases all output.
 function erase() {
-	document.getElementById("outputText").innerHTML = null;
+	var out = $i("outputText");
+	while(out.firstChild) {
+		out.removeChild(out.firstChild);
+	}
 }
 
 // Reset boxes to empty and some checkboxes to certain default values.
 function clearBoxes() {
-	document.getElementById("categories").value = "";
-	document.getElementById("wordInitial").value = "";
-	document.getElementById("midWord").value = "";
-	document.getElementById("singleWord").value = "";
-	document.getElementById("wordFinal").value = "";
-	document.getElementById("rewrite").value = "";
-	document.getElementById("monoLessFrequent").checked = true;
-	document.getElementById("dropoffMedium").checked = true;
-	document.getElementById("textOutput").checked = true;
-	document.getElementById("showSyls").checked = false;
-	document.getElementById("slowSylDrop").checked = false;
-	document.getElementById("defaultName").textContent = "";
+	$i("categories").value = "";
+	$i("wordInitial").value = "";
+	$i("midWord").value = "";
+	$i("singleWord").value = "";
+	$i("wordFinal").value = "";
+	$i("rewrite").value = "";
+	$i("monoLessFrequent").checked = true;
+	$i("dropoffMedium").checked = true;
+	$i("textOutput").checked = true;
+	$i("showSyls").checked = false;
+	$i("slowSylDrop").checked = false;
+	$i("defaultName").textContent = "";
 }
 
 // Simple function sets up the import/export screen.
 function prepImport(msg) {
 	if(typeof msg !== "string") {
-		document.querySelectorAll("#importBoxArea .msg").forEach( m => m.classList.add("hidden") );
+		$a("#importBoxArea .msg").forEach( m => m.classList.add("hidden") );
 	} else {
-		document.querySelectorAll("#importBoxArea .msg").forEach( function(m) {
+		$a("#importBoxArea .msg").forEach( function(m) {
 			m.classList.remove("hidden");
-			m.innerHTML = msg;
+			m.textContent = msg;
 		});
 	}
-	document.getElementById("importBoxArea").classList.remove("closed");
+	$i("importBoxArea").classList.remove("closed");
 	document.body.classList.add("noOverflow");
 }
 
 // Simple function clears input/export box and removes that screen.
 function removeImportBox() {
-	document.getElementById("importTextBox").value = "";
-	document.getElementById("importBoxArea").classList.add("closed");
+	$i("importTextBox").value = "";
+	$i("importBoxArea").classList.add("closed");
 	document.body.classList.remove("noOverflow");
 }
 
 // Parse input to import.
-function doImport(toImport = document.getElementById("importTextBox").value.trim(), testing = false, loud = true) {
+function doImport(toImport = $i("importTextBox").value.trim(), testing = false, loud = true) {
 	// The imported info must match the following pattern.
 	//					1				2				3			4				5			6				7	8	9		10	(11)			12		13	14		15		16
 	var	patt = /--CATEGORIES--\n([\s\S]*)\n--REWRITE--\n([\s\S]*)\n--MONO--\n([\s\S]*)\n--MID--\n([\s\S]*)\n--INIT--\n([\s\S]*)\n--FINAL--\n([\s\S]*)\n--FLAGS--\n([01]) ([01]) ([^ ]+) ([^ \n]+)(\n--ADVANCED--\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([0-9]+)\n([^\n]+))?/,
@@ -661,16 +711,16 @@ function doImport(toImport = document.getElementById("importTextBox").value.trim
 		}
 	}
 	// Apply imported info to the boxes and checkboxes.
-	document.getElementById("categories").value = m[1];
-	document.getElementById("rewrite").value = m[2];
-	document.getElementById("singleWord").value = m[3];
-	document.getElementById("midWord").value = m[4];
-	document.getElementById("wordInitial").value = m[5];
-	document.getElementById("wordFinal").value = m[6];
-	document.getElementById("oneType").checked = (m[7] !== "0");
-	document.getElementById("slowSylDrop").checked = (m[8] !== "0");
-	document.getElementById(m[9]).checked = true;
-	document.getElementById(m[10]).checked = true;
+	$i("categories").value = m[1];
+	$i("rewrite").value = m[2];
+	$i("singleWord").value = m[3];
+	$i("midWord").value = m[4];
+	$i("wordInitial").value = m[5];
+	$i("wordFinal").value = m[6];
+	$i("oneType").checked = (m[7] !== "0");
+	$i("slowSylDrop").checked = (m[8] !== "0");
+	$i(m[9]).checked = true;
+	$i(m[10]).checked = true;
 	// Check for Advanced Options.
 	if(m.length > 12 && m[11] !== undefined) {
 		let counter = 12;
@@ -681,11 +731,11 @@ function doImport(toImport = document.getElementById("importTextBox").value.trim
 			}
 			counter++;
 		}
-		document.getElementById("wordLengthInEms").value = m[12];
-		document.getElementById("lexiconLength").value = m[13];
-		document.getElementById("largeLexiconLength").value = m[14];
-		document.getElementById("sentences").value = m[15];
-		document.getElementById("rewSep").value = m[16];
+		$i("wordLengthInEms").value = m[12];
+		$i("lexiconLength").value = m[13];
+		$i("largeLexiconLength").value = m[14];
+		$i("sentences").value = m[15];
+		$i("rewSep").value = m[16];
 	}
 	// Hide/show boxes if needed.
 	syllablicChangeDetection();
@@ -705,23 +755,23 @@ function doExport(display = true) {
 	// Check if we're checking for the default values.
 	if(display === null) {
 		let flag = true;
-		toExport = "--CATEGORIES--\n" + document.getElementById("categories").defaultValue +
-		"\n--REWRITE--\n" + document.getElementById("rewrite").defaultValue +
-		"\n--MONO--\n" + document.getElementById("singleWord").defaultValue +
-		"\n--MID--\n" + document.getElementById("midWord").defaultValue +
-		"\n--INIT--\n" + document.getElementById("wordInitial").defaultValue +
-		"\n--FINAL--\n" + document.getElementById("wordFinal").defaultValue +
+		toExport = "--CATEGORIES--\n" + $i("categories").defaultValue +
+		"\n--REWRITE--\n" + $i("rewrite").defaultValue +
+		"\n--MONO--\n" + $i("singleWord").defaultValue +
+		"\n--MID--\n" + $i("midWord").defaultValue +
+		"\n--INIT--\n" + $i("wordInitial").defaultValue +
+		"\n--FINAL--\n" + $i("wordFinal").defaultValue +
 		"\n--FLAGS--\n" +
-		(document.getElementById("oneType").defaultChecked ? "1" : "0") + " " +
-		(document.getElementById("slowSylDrop").defaultChecked ? "1" : "0") + " ";
-		document.querySelectorAll("input[name=monoRate]").forEach(function(mr) {
+		($i("oneType").defaultChecked ? "1" : "0") + " " +
+		($i("slowSylDrop").defaultChecked ? "1" : "0") + " ";
+		$a("input[name=monoRate]").forEach(function(mr) {
 			if(flag && mr.defaultChecked) {
 				toExport += mr.getAttribute("id") + " ";
 				flag = false;
 			}
 		});
 		flag = true;
-		document.querySelectorAll("input[name=dropoff]").forEach(function(df) {
+		$a("input[name=dropoff]").forEach(function(df) {
 			if(flag && df.defaultChecked) {
 				toExport += df.getAttribute("id");
 				flag = false;
@@ -729,37 +779,37 @@ function doExport(display = true) {
 		});
 		return toExport;
 	}
-	toExport = "--CATEGORIES--\n" + document.getElementById("categories").value +
-		"\n--REWRITE--\n" + document.getElementById("rewrite").value +
-		"\n--MONO--\n" + document.getElementById("singleWord").value +
-		"\n--MID--\n" + document.getElementById("midWord").value +
-		"\n--INIT--\n" + document.getElementById("wordInitial").value +
-		"\n--FINAL--\n" + document.getElementById("wordFinal").value +
+	toExport = "--CATEGORIES--\n" + $i("categories").value +
+		"\n--REWRITE--\n" + $i("rewrite").value +
+		"\n--MONO--\n" + $i("singleWord").value +
+		"\n--MID--\n" + $i("midWord").value +
+		"\n--INIT--\n" + $i("wordInitial").value +
+		"\n--FINAL--\n" + $i("wordFinal").value +
 		"\n--FLAGS--\n" +
-		(document.getElementById("oneType").checked ? "1" : "0") + " " +
-		(document.getElementById("slowSylDrop").checked ? "1" : "0") + " " +
-		document.querySelector("input[name=monoRate]:checked").getAttribute("id") + " " +
-		document.querySelector("input[name=dropoff]:checked").getAttribute("id");
+		($i("oneType").checked ? "1" : "0") + " " +
+		($i("slowSylDrop").checked ? "1" : "0") + " " +
+		$q("input[name=monoRate]:checked").getAttribute("id") + " " +
+		$q("input[name=dropoff]:checked").getAttribute("id");
 	// Check if we're loading custom content.
 	if(!display) {
 		return toExport;
 	}
 	toExport +=
 		"\n--ADVANCED--\n" +
-		document.getElementById("wordLengthInEms").value + "\n" +
-		document.getElementById("lexiconLength").value + "\n" +
-		document.getElementById("largeLexiconLength").value + "\n" +
-		document.getElementById("sentences").value + "\n" +
-		document.getElementById("rewSep").value;
+		$i("wordLengthInEms").value + "\n" +
+		$i("lexiconLength").value + "\n" +
+		$i("largeLexiconLength").value + "\n" +
+		$i("sentences").value + "\n" +
+		$i("rewSep").value;
 	// Put the info in the box.
-	document.getElementById("importTextBox").value = toExport;
+	$i("importTextBox").value = toExport;
 	// Show the box (and everything else) with instructions.
 	prepImport("Copy this for your own records.<br><br>Hit 'Cancel' when you're done.");
 }
 
 // Save current info to the browser, if possible.
 function saveCustom(test) {
-	var predef = document.getElementById("predef");
+	var predef = $i("predef");
 	if(!Customizable) {
 		doAlert("", "Your browser does not support Local Storage and cannot save your information.", "error");
 		return;
@@ -771,25 +821,25 @@ function saveCustom(test) {
 			function() {doAlert("Previous information saved.", "Nothing overwritten.", "success");},
 			"warning", "Yes", "No");
 	}
-	localStorage.setItem("CustomCategories",		document.getElementById("categories").value);
-	localStorage.setItem("CustomRewrite",		document.getElementById("rewrite").value);
-	localStorage.setItem("CustomSingleWord",		document.getElementById("singleWord").value);
-	localStorage.setItem("CustomMidWord",		document.getElementById("midWord").value);
-	localStorage.setItem("CustomInitial",		document.getElementById("wordInitial").value);
-	localStorage.setItem("CustomFinal",			document.getElementById("wordFinal").value);
-	localStorage.setItem("CustomOneType",		document.getElementById("oneType").checked);
-	localStorage.setItem("CustomSlowSylDrop",		document.getElementById("slowSylDrop").checked);
-	localStorage.setItem("CustomMono",			document.querySelector("input[name=monoRate]:checked").getAttribute("id"));
-	localStorage.setItem("CustomDropoff",		document.querySelector("input[name=dropoff]:checked").getAttribute("id"));
-	localStorage.setItem("CustomWordLengthInEms",	document.getElementById("wordLengthInEms").value);
-	localStorage.setItem("CustomLexiconLength",	document.getElementById("lexiconLength").value);
-	localStorage.setItem("CustomLargeLexiconLength",document.getElementById("largeLexiconLength").value);
-	localStorage.setItem("CustomSentences",		document.getElementById("sentences").value);
-	localStorage.setItem("CustomRewSep",		document.getElementById("rewSep").value);
+	localStorage.setItem("CustomCategories",		$i("categories").value);
+	localStorage.setItem("CustomRewrite",		$i("rewrite").value);
+	localStorage.setItem("CustomSingleWord",		$i("singleWord").value);
+	localStorage.setItem("CustomMidWord",		$i("midWord").value);
+	localStorage.setItem("CustomInitial",		$i("wordInitial").value);
+	localStorage.setItem("CustomFinal",			$i("wordFinal").value);
+	localStorage.setItem("CustomOneType",		$i("oneType").checked);
+	localStorage.setItem("CustomSlowSylDrop",		$i("slowSylDrop").checked);
+	localStorage.setItem("CustomMono",			$q("input[name=monoRate]:checked").getAttribute("id"));
+	localStorage.setItem("CustomDropoff",		$q("input[name=dropoff]:checked").getAttribute("id"));
+	localStorage.setItem("CustomWordLengthInEms",	$i("wordLengthInEms").value);
+	localStorage.setItem("CustomLexiconLength",	$i("lexiconLength").value);
+	localStorage.setItem("CustomLargeLexiconLength",$i("largeLexiconLength").value);
+	localStorage.setItem("CustomSentences",		$i("sentences").value);
+	localStorage.setItem("CustomRewSep",		$i("rewSep").value);
 	CustomInfo = true;
 
 	// Check for the "Custom" predef option and add it if needed.
-	if(predef.querySelector("option[value=\"pd-1\"]") == null) {
+	if($q("option[value=\"pd-1\"]", predef) == null) {
 		let option = document.createElement("option");
 		option.value = "pd-1";
 		option.textContent = "Custom";
@@ -827,7 +877,7 @@ function clearCustom(test) {
 	});
 	CustomInfo = false;
 	// Remove "Custom" from drop-down menu.
-	document.querySelector("#predef option[value=\"pd-1\"]").remove();
+	$q("#predef option[value=\"-1\"]").remove();
 	// Remove info.
 	delete predefs["pd-1"];
 	// Alert success.
@@ -837,12 +887,13 @@ function clearCustom(test) {
 // Display the IPA and other stuff.
 function showIPA() {
 	// Moved to unicode.js
-	document.getElementById("outputText").innerHTML = returnIPAPlus("<span class=\"desc\">", "</span>\n<div class=\"extraGroup\">", "</div>\n", "<br><br>");
+	erase();
+	$i("outputText").appendChild(createIPASymbolsFragment([$e("br"), $e("br")]));
 }
 	
 // Open/close the Advanced Options block.
 function advancedOptions() {
-	document.getElementById("advancedOpen").classList.toggle("closed");
+	$i("advancedOpen").classList.toggle("closed");
 }
 
 // This loads the selected Predefs into the boxes and checkboxes.
@@ -852,12 +903,8 @@ function loadThisPredef(defN) {
 
 
 // Check the current value of the drop-down menu and send it along to loadThisPredef.
-//function loadPredefOLD() {
-//	var predef = document.getElementById("predef").value;
-//	loadThisPredef(Number(predef));
-//}
 function loadPredef() {
-	var pd = document.getElementById("predef").value;
+	var pd = $i("predef").value;
 	console.log(pd);
 	doImport(predefs[pd], false, false);
 	syllablicChangeDetection();
@@ -868,8 +915,8 @@ function loadPredef() {
 getter.addEventListener("load", parseResult);
 getter.open("GET", predefFilename);
 getter.send();
-document.getElementById("loadPredefButton").disabled = true;
-document.getElementById("predef").disabled = true;
+$i("loadPredefButton").disabled = true;
+$i("predef").disabled = true;
 //getter.weAreLoading = true;
 // Save default info as "Starter"
 predefs["pd1"] = doExport(null);
@@ -893,7 +940,7 @@ function parseResult() {
 			// Send info off t be tested for validness
 			if(doImport(info, true)) {
 				// Test passed.
-				let target = document.getElementById("predef"), opt = document.createElement("option"), val = "pd";
+				let target = $i("predef"), opt = document.createElement("option"), val = "pd";
 				// target is the <select> containing predefs.
 				// opt is a new <option> we're adding to it
 				console.log("Saving predef: " + name);
@@ -914,8 +961,8 @@ function parseResult() {
 		}
 	});
 	// Mark that we're no longer waiting.
-	document.getElementById("loadPredefButton").disabled = false;
-	document.getElementById("predef").disabled = false;
+	$i("loadPredefButton").disabled = false;
+	$i("predef").disabled = false;
 	//getter.weAreLoading = false;
 	// if we're waiting for a new idea, print one now
 	// save the ideas for later use
@@ -925,13 +972,13 @@ function parseResult() {
 // If the "one type of syllables" box is [un]checked, change which boxes are visible.
 function syllablicChangeDetection()  {
 	//console.log("fired");
-	if(document.getElementById("oneType").checked) {
-		document.querySelectorAll("#p_multi,.multiswap").forEach( w => w.classList.add("hidden") );
-		document.querySelectorAll(".singleswap").forEach( w => w.classList.remove("hidden") );
+	if($i("oneType").checked) {
+		$a("#p_multi,.multiswap").forEach( w => w.classList.add("hidden") );
+		$a(".singleswap").forEach( w => w.classList.remove("hidden") );
 		//console.log("checked");
 	} else {
-		document.querySelectorAll("#p_multi,.multiswap").forEach( w => w.classList.remove("hidden") );
-		document.querySelectorAll(".singleswap").forEach( w => w.classList.add("hidden") );
+		$a("#p_multi,.multiswap").forEach( w => w.classList.remove("hidden") );
+		$a(".singleswap").forEach( w => w.classList.add("hidden") );
 		//console.log("unchecked");
 	}
 }
@@ -957,12 +1004,12 @@ if(typeof(Storage) !== "undefined") {
 		let option = document.createElement("option"),
 		propTrue = [localStorage.getItem("CustomMono"), localStorage.getItem("CustomDropoff")],
 		propFalse = [];
-		document.getElementById("categories").value = localStorage.getItem("CustomCategories");
-		document.getElementById("rewrite").value = localStorage.getItem("CustomRewrite");
-		document.getElementById("singleWord").value = localStorage.getItem("CustomSingleWord");
-		document.getElementById("midWord").value = localStorage.getItem("CustomMidWord");
-		document.getElementById("wordInitial").value = localStorage.getItem("CustomInitial");
-		document.getElementById("wordFinal").value = localStorage.getItem("CustomFinal");
+		$i("categories").value = localStorage.getItem("CustomCategories");
+		$i("rewrite").value = localStorage.getItem("CustomRewrite");
+		$i("singleWord").value = localStorage.getItem("CustomSingleWord");
+		$i("midWord").value = localStorage.getItem("CustomMidWord");
+		$i("wordInitial").value = localStorage.getItem("CustomInitial");
+		$i("wordFinal").value = localStorage.getItem("CustomFinal");
 		if(localStorage.getItem("CustomOneType") === "true") {
 			propTrue.push("oneType");
 		} else {
@@ -973,13 +1020,13 @@ if(typeof(Storage) !== "undefined") {
 		} else {
 			propFalse.push("slowSylDrop");
 		}
-		propTrue.forEach( box => document.getElementById(box).checked = true );
-		propFalse.forEach( box => document.getElementById(box).checked = false );
+		propTrue.forEach( box => $i(box).checked = true );
+		propFalse.forEach( box => $i(box).checked = false );
 		predefs["pd-1"] = doExport(false);
 		option.value = "pd-1";
 		option.textContent = "Custom";
-		document.getElementById("predef").prepend(option);
-		document.getElementById("predef").value = "pd-1";
+		$i("predef").prepend(option);
+		$i("predef").value = "pd-1";
 	}
 	//console.log(propTrue);
 	//console.log(propFalse);
@@ -987,7 +1034,7 @@ if(typeof(Storage) !== "undefined") {
 }
 
 // Toggle boxes when "one type of syllable" box is [un]checked.
-document.getElementById("oneType").addEventListener("change", function(event) {
+$i("oneType").addEventListener("change", function(event) {
 	syllablicChangeDetection();
 });
 // Fire it right now.
@@ -995,18 +1042,18 @@ syllablicChangeDetection();
 
 
 // Set up the buttons.
-document.getElementById("advancedOpenButton").addEventListener("click", advancedOptions);
-document.getElementById("saveCustomButton").addEventListener("click", saveCustom);
-document.getElementById("clearCustomButton").addEventListener("click", clearCustom);
-document.getElementById("prepImportButton").addEventListener("click", prepImport);
-document.getElementById("generateButton").addEventListener("click", generate);
-document.getElementById("eraseButton").addEventListener("click", erase);
-document.getElementById("clearBoxesButton").addEventListener("click", clearBoxes);
-document.getElementById("showIPAButton").addEventListener("click", showIPA);
-document.getElementById("loadPredefButton").addEventListener("click", loadPredef);
-document.getElementById("doImportButton").addEventListener("click", doImport);
-document.getElementById("removeImportBoxButton").addEventListener("click", removeImportBox);
-document.getElementById("doExportButton").addEventListener("click", doExport);
+$i("advancedOpenButton").addEventListener("click", advancedOptions);
+$i("saveCustomButton").addEventListener("click", saveCustom);
+$i("clearCustomButton").addEventListener("click", clearCustom);
+$i("prepImportButton").addEventListener("click", prepImport);
+$i("generateButton").addEventListener("click", generate);
+$i("eraseButton").addEventListener("click", erase);
+$i("clearBoxesButton").addEventListener("click", clearBoxes);
+$i("showIPAButton").addEventListener("click", showIPA);
+$i("loadPredefButton").addEventListener("click", loadPredef);
+$i("doImportButton").addEventListener("click", doImport);
+$i("removeImportBoxButton").addEventListener("click", removeImportBox);
+$i("doExportButton").addEventListener("click", doExport);
 
 
 
