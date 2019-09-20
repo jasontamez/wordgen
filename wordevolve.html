@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WordEvolve - Conlang Vocabulary Modifier</title>
+<meta name="theme-color" content="#001144">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<link rel="stylesheet" type="text/css" href="css/reset.css">
+<link rel="stylesheet" type="text/css" href="css/wordgen01.css">
+</head>
+<body class="evolve">
+
+<header id="title">WordEvolve</header>
+<p class="desc">This is a Javascript-based psuedo-realistic vocabulary modifier for
+	<abbr title="Constructed Languages">conlangs</abbr> based on Mark Rosenfelder&apos;s
+	<a href="https://www.zompist.com/sca2.html">SCA²</a>. Click on the small question marks
+	<span class="help-fake">?</span> for help<!--, or go read through the <a href="wordgentutorial.php">tutorial</a> I wrote-->.
+</p>
+
+
+<div id="parameters" class="evolve">
+	<div id="p_categories">Categories:<span class="help">?<span class="info">This is where you define categories of sounds. The format is
+			<em class="two">X=abcde</em> where <em class="two">X</em> is the <em>category</em> (any single character) and
+			<em class="two">abcde</em> is a <em>run</em> of characters that are a part of that category.</span></span>
+		<br>
+		<textarea id="cats" class="midbox" name="cats" rows="10" cols="40">
+V=aeiou
+L=&#x0101;&#x0113;&#x012b;&#x014d;&#x016b;
+C=ptcqbdgmnlrhs     
+F=ie
+B=ou
+S=ptc
+Z=bdg</textarea>
+	</div>
+	<div id="p_change">Sound Changes:<span class="help">?<span class="info">This is where you define <strong>sound-change rules</strong>. They are
+			in the format <em class="two">x/y/z</em> where <em class="two">x</em> is the sound (characters) to be changed, <em class="two">y</em>
+			is the sound it changes to, and <em class="two">z</em> is the <strong>context</strong> where this change happens. <em>x</em> or
+			<em>y</em> may be blank, but not both.<br><br>The <em>context</em> is in the format <em class="two">a_b</em> where <em class="two">a</em>
+			is what comes before the sound, <em class="two">b</em> is what comes after the sound, and <em class="two">_</em> indicates where the
+			sound itself is. You can use <em class="two">#</em> within <em>a</em> or <em>b</em> to indicate the beginning or the end of a word, and you
+			can use a <strong>category</strong> name to match any member of that category's <em>run</em>. If both <em>a</em> and <em>b</em> have a
+			category, the nth character in the <em>run</em> of one <em>category</em> will be replaced with the nth character in the <em>run</em> of the
+			other <em>category</em>. If you leave the <em>context</em> blank, it is treated as if it were <em>_</em>.<br><br>Optionally, you can add a
+			fourth parameter: <em class="two">x/y/z/j</em>. <em class="two">j</em> is an <em>exception</em>, which is a <em>context</em> like <em>z</em>,
+			but if the <em>exception</em> matches, the sound is <strong>not</strong> changed.<br><br>All parameters can include Javascript regular
+			expressions.</span></span>
+		<br>
+		<textarea id="change" name="change" class="tallbox" rows="30" cols="35">
+[sm]//_#
+i/j/_V
+L/V/_
+e//Vr_#
+v//V_V
+u/o/_#
+gn/nh/_
+S/Z/V_V
+c/i/F_t
+c/u/B_t
+p//V_t
+ii/i/_
+e//C_rV</textarea>
+	</div>
+	<div id="p_input">Input Lexicon:<span class="help">?<span class="info">This is the list of words you are changing through use of the
+			<strong>sound-change rules</strong>, one per line.</span></span>
+		<br>
+		<textarea id="inputLex" name="inputLex" class="tallbox" rows="30" cols="20">
+lector
+doctor
+focus
+jocus
+districtus
+c&#x012b;vitatem
+adoptare
+opera
+secundus
+f&#x012b;liam
+p&#x014d;ntem</textarea>
+	</div>
+	<div id="p_result"><div>Result Lexicon:<span class="help">?<span class="info">After the <strong>sound changes</strong> are applied,
+			the changed words are printed here.</span></span></div>
+		<div id="outputLex"></div>
+
+	</div>
+	<div id="p_opt">Output format:
+		<br><label><input type ="radio" name="outtype" id="text" value="text" checked>output</label><span class="help">?<span class="info">Changed words
+			are printed by themselves.</span></span>
+		<br><label><input type ="radio" name="outtype" id="arro" value="arro">input &#x2192; output</label><span class="help">?<span class="info">Changed
+			words are printed in the format <em>a &#x2192; b</em> where <em>a</em> is the original word and <em>b</em> is the changed word.</span></span>
+		<br><label><input type ="radio" name="outtype" id="dict" value="dict">output [input]</label><span class="help">?<span class="info">Changed words
+			are printed in the format <em>b [a]</em> where <em>a</em> is the original word and <em>b</em> is the changed word.</span></span>
+		<br><label><input type="checkbox" name="showdiff" id="showDifferences">Show changes from last run</label><span class="help">?<span class="info">If
+			a word is different from the last time it was printed, it will print <strong>in bold text</strong>. (Note: "differences" may be a change in
+			output format, or if input words were changed.)</span></span>
+		<br><label><input type="checkbox" name="report" id="reportAppliedRules">Report which rules apply</label><span class="help">?<span class="info">The
+			<strong>output</strong> below will include a report showing how each <strong>sound-change rule</strong> changed each word in the
+			<strong>input lexicon</strong>.</span></span>
+		<div class="buttongroup"><button id="evolveButton">Apply Changes</button><span class="help">?<span class="info">Clicking
+			<strong>Apply Changes</strong> starts the engine, printing changed words into the <strong>Result Lexicon</strong> and other output into the
+			<strong>Output</strong> section below.</span></span>
+		</div>
+		<div class="buttongroup"><button id="clearBoxesButton">Clear Inputs &uArr;<span class="wideArrow"> &#8663;</span></button><span class="help">?<span class="info">Clicking <strong>Clear Inputs</strong> erases everything
+			in the <strong>category</strong>, <strong>sound changes</strong> and <strong>rewrite rules</strong> boxes.</span></span>
+		</div>
+		<div class="buttongroup"><button id="eraseButton">Clear Outputs <span class="wideArrow">&rArr;</span><span class="narrowArrow">&dArr;</span></button><span class="help">?<span class="info">Clicking <strong>Clear Output</strong>
+			button erases everything in the <strong>Result Lexicon</strong> and the <strong>Output</strong> below.</span></span>
+		</div>
+		<div class="buttongroup"><button id="showIPAButton" class="minor">Show Extra Characters</button><span class="help">?<span class="info">Clicking <strong>Show Extra
+			Characters</strong> button puts a bunch of <abbr title="International Phonetic Alphabet">IPA</abbr>, Latin, Cyrillic, Armenian, Greek and Coptic
+			characters into the <strong>Output</strong> section below. (You can then cut and paste them into any of the boxes above!) Note: some characters may
+			not print, especially if on a mobile device.</span></span>
+		</div>
+	</div>
+	<div id="p_rewrite">Rewrite rules:<span class="help">?<span class="info">These are used to perform global replacements on original words in
+			the <strong>input lexicon</strong> as well as the final, changed words in the <strong>result lexicon</strong>. For instance, you might
+			use <em class="two">th||T</em> to change the original word <em class="two">them</em> into <em class="two">Tem</em> so that the
+			<strong>sound-change rules</strong> have something easier to work with. After the word is transformed, the rules are applied in
+			reserve to change <em class="two">Tim</em> into <em class="two">thim</em>.<br><br>You can also make <em>rules</em> that only work
+			in one direction. <em class="two">th&gt;&gt;T</em> would only change <em class="two">them</em> into <em class="two">Tem</em>, and
+			<em class="two">th&lt;&lt;T</em> would only change <em class="two">Tim</em> into <em class="two">thim</em>.<br><br>One-way
+			<em>rules</em>, on the source side only, can use Javascript regular expressions, as well as <em class="two">%X</em> and
+			<em class="two">!%X</em> expressions where X is the label of a <em>category</em>: <em class="two">%X</em> is replaced with
+			<em class="two">[a-z]</em> and <em class="two">!%X</em> is replaced with <em class="two">[^a-z]</em>, where <em>a-z</em> is the run
+			of characters in that category.</span></span>
+		<br>
+		<textarea id="rewrite" name="rewrite" class="midbox" rows="7" cols="20">lh||lj</textarea>
+	</div>
+	<div id="p_output">
+		<div>Output:</div>
+		<div id="outputText"></div>
+	</div>
+	<div id="p_chars"></div><!-- Output for IPA characters only -->
+</div>
+<div id="advancedClosed"><button id="advancedOptionsButton">Open Advanced Options</button></div>
+<div id="advancedSection" class="container">
+	<div id="advancedOpen" class="closed evolve">
+		<div>
+			<div><button id="saveCustomButton">Save to Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Save
+				to Browser</strong> will store the current <strong>Categories</strong>, <strong>Sound Changes</strong>, <strong>Rewrite
+				Rules</strong> and the advanced options below to your browser&apos;s localStorage, if your browser supports it. If you
+				already have info stored, this will overwrite it!<br><br>NOTE: This should not be considered a long-term storage solution,
+				as your browser might delete it if you run out of cache or localStorage space. Use <strong>Export Settings</strong> to
+				keep an offline backup.</span></span></div>
+			<div><button id="loadCustomButton">Load from Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Load
+				from Browser</strong> will replace the <strong>Categories</strong>, <strong>Sound Changes</strong> and <strong>Rewrite
+				Rules</strong> with the information you previously stored on your browser with the <strong>Save</strong> button.</span></span></div>
+			<div><button id="clearCustomButton">Clear from Browser</button><span class="help popOut">?<span class="info">Clicking <strong>Clear
+				from Browser</strong> will delete any information stored on your browser by the <strong>Save</strong> button.</span></span></div>
+			<div><button id="prepImportButton">Import Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Import
+				Settings</strong> will open a box where you can paste information formatted by <strong>Export Settings</strong>. Clicking
+				<strong>Import</strong> below the box will load your settings. Clicking <strong>Cancel</strong> will close the box.</span></span></div>
+			<div><button id="doExportButton">Export Settings</button><span class="help popOut">?<span class="info">Clicking <strong>Export
+				Settings</strong> will open a box and fill it with formatted information based on the current <strong>Categories</strong>,
+				<strong>Sound Changes</strong> and <strong>Rewrite Rules</strong>, as well as the advanced options below. Copy and
+				save it for your own records, and use <strong>Import Settings</strong> to reload it at a later date.</span></span></div>
+		</div>
+		<div>
+			<div><strong>Sound-change separator:</strong> <input type="text" value="/" id="changeSep">
+				<span class="help popOut">?<span class="info"><strong>Sound changes</strong>, by default, can be written as
+				<em>from/to/environment</em>. The first slash can be replaced by an arrow or <strong>&gt;</strong> greater-than sign, to
+				better match linguistic convention. If you change this option, the engine will split the input using the string given here
+				instead of a slash. (The initial arrow or &gt; will still work, however.)</span></span></div>
+			<div><strong>Word-boundary character:</strong> <input type="text" value="#" id="changeBound">
+				<span class="help popOut">?<span class="info">The standard linguistic notation for a word boundary is <strong>#</strong>
+				the pound sign or hash tag. You can change this using this text box. (You can also use the standard RegExp expression
+				<strong>\b</strong>.)</span></span></div>
+			<div><strong>Sound-position character:</strong> <input type="text" value="_" id="changePos">
+				<span class="help popOut">?<span class="info">The standard linguistic notation for a sound's place in an environment is
+				<strong>_</strong> the underscore. You can change this using this text box.</span></span></div>
+		</div>
+		<div class="semiheader">Rewrite separators:</div>
+		<div>
+			<div><strong>Two way:</strong> <input type="text" value="||" id="rewBoth">
+				<span class="help popOut">?<span class="info"><strong>Rewrite rules</strong> are in the format <em>from||to</em>. You
+				can change the default double-vertical line splitter by using this text box.</span></span></div>
+			<div><strong>Input only:</strong> <input type="text" value=">>" id="rewIn"><span class="help popOut">?<span class="info">The
+				double greater-than sign indicates a <strong>rewrite rule</strong> that should only be used before applying
+				<strong>sound changes</strong>. You can change that using this text box.</span></span></div>
+			<div><strong>Output only:</strong> <input type="text" value="<<" id="rewOut"><span class="help popOut">?<span class="info">The
+				double less-than sign indicates a <strong>rewrite rule</strong> that should only be used after applying
+				<strong>sound changes</strong> (replacing 'to' in the final word with 'from'). You can change that marker using this
+				text box.</span></span></div>
+		</div>
+	</div>
+</div>
+
+<div class="links links-nav">
+	<div class="set-apart"><a href="conlangs/">Conlangs</a></div>
+	<div class="set-apart"><a href=".">Index</a></div>
+</div>
+<div id="importBoxArea" class="closed">
+	<textarea id="importTextBox" name="importTextBox" rows="25" cols="40" placeholder="Paste your input here and hit 'Import' below."></textarea>
+	<div><button id="doImportButton">Import</button> <button id="removeImportBoxButton">Cancel</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@8/dist/sweetalert2.all.min.js"></script>
+<script src="js/unicode.min.js"></script>
+<script src="js/wordevolve.js"></script>
+<script src="js/help-popups.js"></script>
+</body>
+</html>
