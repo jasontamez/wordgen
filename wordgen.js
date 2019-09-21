@@ -405,7 +405,7 @@ function escapeHTML(html) {
 
 // User hit the action button.  Make things happen!
 function generate() {
-	var whichWay,temp,frag,output,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff;
+	var whichWay,temp,alsoTemp,frag,output,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff;
 	// Read parameters.
 	whichWay = $q("input[type=radio][name=outType]:checked").value;	// What output are we aiming for?
 	showSyls = $i("showSyls").checked;	// Do we show syllable breaks?
@@ -621,22 +621,22 @@ function parseRewriteRules(rules) {
 		// Go through each rule one at a time.
 		tester = potentials.every(function(rule) {
 			// Make sure each rule has two parts.
-			var replacement, separatorPosition = rule.indexOf(rewSep);
+			var separatorPosition = rule.indexOf(rewSep);
 			if(rule.trim() === "") {
 				// Ignore blank lines.
 				plen--;
 			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
 				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
-				frag = $f();
+				let frag = $f();
 				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
 				em.push(frag);
 				// End the looping.
 				return false;
 			} else {
 				// Isolate the replacement.
-				replacement = rule.substring(separatorPosition + 2);
-				// Isolate the rule, convert %Category expressions, and turn it into a regex pattern.
-				newrule = new RegExp(handleCategoriesInRewriteRule(rule.substring(0, separatorPosition)), "g"); // for case insensitivity change "g" to "gi"
+				let	replacement = rule.substring(separatorPosition + 2),
+					// Isolate the rule, convert %Category expressions, and turn it into a regex pattern.
+					newrule = new RegExp(handleCategoriesInRewriteRule(rule.substring(0, separatorPosition)), "g"); // for case insensitivity change "g" to "gi"
 				// Save this rule.
 				newrules[counter.toString()] = [newrule, replacement];
 				// Increment the counter.
