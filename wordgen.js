@@ -297,6 +297,7 @@ function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 function createLex(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	var w,
 		output = $e("div"),
+	//var	output = "<div class=\"lexicon\" style=\"grid-template-columns: repeat(auto-fit, minmax(" + getAdvancedNumber("#wordLengthInEms", 10, 1000) + "em, 1fr) )\">\n",
 		nLexTotal = getAdvancedNumber($i("lexiconLength"), 150, 1000);
 	output.classList.add("lexicon");
 	output.style.gridTemplateColumns = "repeat(auto-fit, minmax(" + getAdvancedNumber($i("wordLengthInEms"), 10, 1000).toString() + "em, 1fr) )";
@@ -306,10 +307,12 @@ function createLex(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop
 		//}
 		let frag = $e("div", getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop));
 		output.appendChild(frag);
+		//output += "<div>" + getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) + "</div>";
 		//if (w % 10 === 9) {
 		//	output += "</tr>\n";
 		//}
 	}
+	//output += "</table></div>\n";
 	return output;
 }
 
@@ -358,6 +361,7 @@ function getEverySyllable() {
 	frag.appendChild($t(output.shift()));
 	output.forEach( syll => frag.append($e("br"), syll) );
 	return frag;
+	//return output.join("<br>");
 }
 
 // Go through categories recursively, adding finished words to the given Set.
@@ -401,7 +405,7 @@ function escapeHTML(html) {
 
 // User hit the action button.  Make things happen!
 function generate() {
-	var whichWay,counter,frag,foo,bar,baz,output,tester,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff,tempArray,ncat;
+	var whichWay,temp,frag,output,errorMessages = [],showSyls,slowSylDrop,oneType,monoRate,dropoff;
 	// Read parameters.
 	whichWay = $q("input[type=radio][name=outType]:checked").value;	// What output are we aiming for?
 	showSyls = $i("showSyls").checked;	// Do we show syllable breaks?
@@ -411,155 +415,84 @@ function generate() {
 	dropoff = Number($q("input[type=radio][name=dropoff]:checked").value);	// How fast do the category runs flatten out?
 
 	// Validate monosyllable selector.
-	if(monoRate !== monoRate || monoRate > 1.0) {
-		// If monoRate isn't set or is bigger than 1.0 (neither should be possible), change it to 1.0.
+	// If monoRate isn't set or is bigger than 1.0 (neither should be possible), change it to 1.0.
+	// If monoRate is less than 0.0 (shouldn't be possible), change it to 0.0.
+	monoRate = Math.min(Math.max(monoRate, 0.0), 1.0);
+	if(monoRate !== monoRate) {
 		// (NaN !== NaN is always true)
 		monoRate = 1.0;
-	} else if (monoRate < 0.0) {
-		// If monoRate is less than 0.0 (shouldn't be possible), change it to 0.0.
-		monoRate = 0.0;
 	}
 
 	// Validate dropoff selector.
-	if(dropoff !== dropoff || dropoff > 45) {
-		// If dropoff isn't set or is bigger than 45 (neither should be possible), change it to 45.
+	// If dropoff isn't set or is bigger than 45 (neither should be possible), change it to 45.
+	// If dropoff is less than 0 (shouldn't be possible), change it to 0.
+	dropoff = Math.min(Math.max(dropoff, 0), 45);
+	if(dropoff !== dropoff) {
+		// (NaN !== NaN is always true)
 		dropoff = 45;
-	} else if(dropoff < 0) {
-		// If dropoff is less than 0 (shouldn't be possible), change it to 0.
-		dropoff = 0;
 	}
 
 	// Parse all those boxes for validness.
 
 	// Grab the category list.
-	baz = $i("categories").value;
+	temp = $i("categories").value;
 	// If the categories have changed, parse them.
-	if(baz !== previousCat) {
-		foo = baz.split(/\r?\n/);
-		// Hold on to the number of categories.
-		ncat = foo.length;
-		// Set up an object for all categories.
-		categories = new Object();
-		// Set up an index for the categories.
-		categories.index = "";
-		// Go through each category one at a time
-		// Make sure categories have structure like V=aeiou
-		tester = foo.every(function(element) {
-			// Remove whitespace from element.
-			var thiscat = element.trim();
-			// Lock up the length of this category.
-			const len = thiscat.length;
-			if(len === 0) {
-				// Blank category. Ignore this.
-				ncat--;
-			} else if (len < 3 || thiscat.indexOf("=") !== 1 || thiscat.indexOf("=", 2) !== -1) {
-				// If the category doesn't have at least three characters...
-				//  OR the category doesn't have = as its second character...
-				//  OR the category has = somewhere else other than the second character...
-				// THEN this is a bad category.
-				frag = $f();
-				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + thiscat, $e("br"), "Categories must be of the form V=aeiou", $e("br"), "That is, a single letter, an equal sign, then a list of possible expansions.");
-				errorMessages.push(frag);
-				// End the looping.
-				return false;
-			} else {
-				// Isolate the category name.
-				bar = thiscat.charAt(0);
-				if(categories.hasOwnProperty(bar)) {
-					// If we have defined this category before, throw an error.
-					frag = $f();
-					frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + "You have defined category " + thiscat + " more than once.");
-					errorMessages.push(frag);
-					return false;
-				} else {
-					// Add this category to the category index.
-					categories.index += thiscat.charAt(0);
-					// Save this category info.
-					categories[bar] = thiscat.substring(2);
-				}
-			}
-			// Continue the loop.
-			return true;
-		});
+	if(temp !== previousCat) {
+		let testing = parseCategories(temp);
 		// If we found no errors, save the categories.
-		if(tester && ncat > 0) {
-			previousCat = baz;
-			categories.length = ncat;
+		if(testing.flag && testing.cats.length > 0) {
+			previousCat = temp;
+			categories = testing.cats;
+		} else {
+			errorMessages.push(...testing.msgs);
 		}
 	}
 
 	// Parse the syllable lists.
 	// Check each one to see if it's changed, first.
-	baz = $i("midWord").value;
-	if(baz !== previousMidWordSyls) {
-		midWordSyls = parseSyllables(baz);
-		previousMidWordSyls = baz;
+	temp = $i("midWord").value;
+	if(temp !== previousMidWordSyls) {
+		midWordSyls = parseSyllables(temp);
+		previousMidWordSyls = temp;
 	}
 
-	baz = $i("wordInitial").value;
-	if(baz !== previousWordInitSyls) {
-		wordInitSyls = parseSyllables(baz);
-		previousWordInitSyls = baz;
+	temp = $i("wordInitial").value;
+	if(temp !== previousWordInitSyls) {
+		wordInitSyls = parseSyllables(temp);
+		previousWordInitSyls = temp;
 	}
 
-	baz = $i("wordFinal").value;
-	if(baz !== previousWordFinalSyls) {
-		wordFinalSyls = parseSyllables(baz);
-		previousWordFinalSyls = baz;
+	temp = $i("wordFinal").value;
+	if(temp !== previousWordFinalSyls) {
+		wordFinalSyls = parseSyllables(temp);
+		previousWordFinalSyls = temp;
 	}
 
-	baz = $i("singleWord").value;
-	if(baz !== previousSingleWordSyls) {
-		singleWordSyls = parseSyllables(baz);
-		previousSingleWordSyls = baz;
+	temp = $i("singleWord").value;
+	if(temp !== previousSingleWordSyls) {
+		singleWordSyls = parseSyllables(temp);
+		previousSingleWordSyls = temp;
 	}
 
 	// Grab the rewrite rules.
-	baz = $i("rewrite").value;
+	temp = $i("rewrite").value;
 	// Find the splitter. (|| by default)
-	foo = $i("rewSep").value;
+	alsoTemp = $i("rewSep").value;
 	// If the rules have changed, parse them.
-	if(previousRew !== baz || foo !== rewSep) {
-		rewSep = foo;
-		tempArray = baz.split(/\r?\n/);
-		// Save the length of the rules.
-		nrew = tempArray.length;
-		// Set up rew as a blank object.
-		rew = new Object;
-		// Set up a counter to give each rule a unique ID.
-		counter = 0;
-		// Go through each rule one at a time.
-		tester = tempArray.every(function(rule) {
-			// Make sure each rule has two parts.
-			var replacement, separatorPosition = rule.indexOf(rewSep);
-			if(rule.trim() === "") {
-				// Ignore blank lines.
-				nrew--;
-			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
-				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
-				frag = $f();
-				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
-				errorMessages.push(frag);
-				// End the looping.
-				return false;
-			} else {
-				// Isolate the replacement.
-				replacement = rule.substring(separatorPosition + 2);
-				// Isolate the rule, convert %Category expressions, and turn it into a regex pattern.
-				rule = handleCategoriesInRewriteRule(rule.substring(0, separatorPosition));
-				rule = new RegExp(rule, "g"); // for case insensitivity change "g" to "gi"
-				// Save this rule.
-				rew[counter.toString()] = [rule, replacement];
-				// Increment the counter.
-				counter++;
-			}
-			// Continue the loop.
-			return true;
-		});
+	if(previousRew !== temp || alsoTemp !== rewSep) {
+		let testing;
+		// Save the separator
+		rewSep = alsoTemp;
+		// Run through the rules.
+		testing = parseRewriteRules(temp);
 		// If we found no errors, save the rules.
-		if(tester) {
-			previousRew = baz;
+		if(testing.flag) {
+			previousRew = temp;
 			// nrew === 0 is ok: sometimes you don't need to rewrite anything.
+			nrew = testing.len;
+			rew = testing.rules;
+		} else {
+			errorMessages.push(...testing.msgs);
 		}
 	}
 
@@ -612,6 +545,117 @@ function generate() {
 	erase();
 	$i("outputText").appendChild(output);
 }
+
+// Test potential catgories to make sure they're formatted correctly.
+function parseCategories(testcats) {
+	var	potentials = testcats.split(/\r?\n/),
+		// Set up an object for all categories.
+		// Hold on to the number of categories.
+		// Set up an index for the categories.
+		newcats = {
+			length: potentials.length,
+			index: ""
+		},
+		// Hold error messages.
+		em = [],
+		// Go through each category one at a time
+		// Make sure categories have structure like V=aeiou
+		tester = potentials.every(function(element) {
+			// Remove whitespace from element.
+			var thiscat = element.trim();
+			// Lock up the length of this category.
+			const len = thiscat.length;
+			if(len === 0) {
+				// Blank category. Ignore this.
+				newcats.length--;
+			} else if (len < 3 || thiscat.indexOf("=") !== 1 || thiscat.indexOf("=", 2) !== -1) {
+				// If the category doesn't have at least three characters...
+				//  OR the category doesn't have = as its second character...
+				//  OR the category has = somewhere else other than the second character...
+				// THEN this is a bad category.
+				let frag = $f();
+				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + thiscat, $e("br"), "Categories must be of the form V=aeiou", $e("br"), "That is, a single letter, an equal sign, then a list of possible expansions.");
+				em.push(frag);
+				// End the looping.
+				return false;
+			} else {
+				// Isolate the category name.
+				let cname = thiscat.charAt(0);
+				if(newcats.hasOwnProperty(cname)) {
+					// If we have defined this category before, throw an error.
+					let frag = $f();
+					frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + "You have defined category " + thiscat + " more than once.");
+					em.push(frag);
+					//errorMessages.push("<strong>Error:</strong> You have defined category " + escapeHTML(bar) + " more than once.");
+					return false;
+				} else {
+					// Add this category to the category index.
+					newcats.index += cname;
+					// Save this category info.
+					newcats[cname] = thiscat.substring(2);
+				}
+			}
+			// Continue the loop.
+			return true;
+		});
+	// Return an object where FLAG indicates if the input was formatted correctly,
+	//   CATS is the formatted categories, and MSGS are any error messages.
+	return {
+		flag: tester,
+		cats: newcats,
+		msgs: em
+	};
+}
+
+// Test potential rewrite rules to make sure they're formatted correctly.
+function parseRewriteRules(rules) {
+	var	potentials = rules.split(/\r?\n/),
+		// Save the length of the rules.
+		plen = potentials.length,
+		// Set up a counter to give each rule a unique ID.
+		counter = 0,
+		// Set up newrules as a blank object.
+		newrules = new Object,
+		// Set up an array for error messages.
+		em = [],
+		// Go through each rule one at a time.
+		tester = potentials.every(function(rule) {
+			// Make sure each rule has two parts.
+			var replacement, separatorPosition = rule.indexOf(rewSep);
+			if(rule.trim() === "") {
+				// Ignore blank lines.
+				plen--;
+			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
+				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
+				frag = $f();
+				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
+				em.push(frag);
+				// End the looping.
+				return false;
+			} else {
+				// Isolate the replacement.
+				replacement = rule.substring(separatorPosition + 2);
+				// Isolate the rule, convert %Category expressions, and turn it into a regex pattern.
+				newrule = new RegExp(handleCategoriesInRewriteRule(rule.substring(0, separatorPosition)), "g"); // for case insensitivity change "g" to "gi"
+				// Save this rule.
+				newrules[counter.toString()] = [newrule, replacement];
+				// Increment the counter.
+				counter++;
+			}
+			// Continue the loop.
+			return true;
+		});
+	// Return an object where FLAG indicates if the input was formatted correctly,
+	//   RULES is the formatted rules, LEN is the number of rules, and MSGS are any error messages.
+	return {
+		flag: tester,
+		rules: newrules,
+		len: plen,
+		msgs: em
+	};
+
+}
+
 
 // Calculate syllable dropoff percentage rate, based on the maximum number of candidates.
 function calcDropoff(lengthOfCandidates, slowSylDrop) {
@@ -697,7 +741,7 @@ function doImport(toImport = $i("importTextBox").value.trim(), testing = false, 
 	if(testing) {
 		if(m === null) {
 			// Predef did not load correctly.
-			console.log("Incorrect format.");
+			console.log("Incorrect predef format.");
 			return false;
 		}
 		// Predef DID load correctly.
@@ -887,6 +931,7 @@ function clearCustom(test) {
 // Display the IPA and other stuff.
 function showIPA() {
 	// Moved to unicode.js
+	//$i("outputText").innerHTML = returnIPAPlus("<span class=\"desc\">", "</span>\n<div class=\"extraGroup\">", "</div>\n", "<br><br>");
 	erase();
 	$i("outputText").appendChild(createIPASymbolsFragment([$e("br"), $e("br")]));
 }
@@ -903,6 +948,10 @@ function loadThisPredef(defN) {
 
 
 // Check the current value of the drop-down menu and send it along to loadThisPredef.
+//function loadPredefOLD() {
+//	var predef = $i("predef").value;
+//	loadThisPredef(Number(predef));
+//}
 function loadPredef() {
 	var pd = $i("predef").value;
 	console.log(pd);
