@@ -7,6 +7,9 @@
 //	Degemination			M//_2       (subscript 2)	** shortening a consonant
 //	Gemination				M/M2/_				** lengthening one
 
+// Modified by Jason Tamez 2017-2019.
+// Code available here: https://github.com/jasontamez/wordgen
+
 
 var	Customizable = false,	// Can we use LocalStorage?
 	CustomInfo = false,	// Do we have anything in storage?
@@ -19,7 +22,8 @@ var	Customizable = false,	// Can we use LocalStorage?
 	previousChange,			// Stores previously-parsed sound-change rules
 	rew,				// Rewrite rules
 	nrew,
-	previousRew;			// Stores previously-parsed rewrite rules
+	previousRew,			// Stores previously-parsed rewrite rules
+	SPACE = String.fromCharCode(0x00a0); // Non-breaking space for text formatting.
 
 
 // Helper functions to streamline some often-used function calls.
@@ -32,28 +36,55 @@ function $q(x, doc = document) {
 function $a(x, doc = document) {
 	return doc.querySelectorAll(x);
 }
-function $e(tag, text = false, atts = false) {
+function $e(tag, text = false) {
 	var e = document.createElement(tag);
 	if(text !== false) {
 		e.textContent = text;
 	}
-	if(atts !== false) {
-		Object.entries(atts).forEach(pair => e.setAttribute(pair[0], pair[1]));
-	}
 	return e;
-}
-function $t(text) {
-	return document.createTextNode(text);
-}
-function $f() {
-	return document.createDocumentFragment();
 }
 
 
 // Reverse a string
-function reverse(x) {
-	return x.split("").reverse().join();
+function isCombiningDiacritic(code) {
+	// Helper function identifies combining characters.
+	return (0x0300 <= code && code <= 0x036F)  // Comb. Diacritical Marks
+		|| (0x1AB0 <= code && code <= 0x1AFF)  // Comb. Diacritical Marks Extended
+		|| (0x1DC0 <= code && code <= 0x1DFF)  // Comb. Diacritical Marks Supplement
+		|| (0x20D0 <= code && code <= 0x20FF)  // Comb. Diacritical Marks for Symbols
+		|| (0xFE20 <= code && code <= 0xFE2F); // Comb. Half Marks
 }
+// Make function on the prototype, available to all Strings.
+String.prototype.reverse = function() {
+	var output = "", i;
+	// Loop through string from back to front.
+	for (i = this.length - 1; i >= 0; --i ) {
+		let width = 1, modI = i, thisI, thisIMinusOne;
+		// If character is a combiner, move pointer (modI) one space to the left and increase the width.
+		while(modI > 0 && isCombiningDiacritic(this.charCodeAt(modI))) {
+			--modI;
+			width++;
+		}
+		// Save current base character.
+		thisI = this[modI];
+		// Save possible emoji character.
+		thisIMinusOne = this[modI-1];
+		// Check to see if we're a two-char emoji, and modify pointer and width if so.
+		if (modI > 0 && "\uDC00" <= thisI && thisI <= "\uDFFF" && "\uD800" <= thisIMinusOne && thisIMinusOne <= "\uDBFF") {
+			--modI;
+			width++;
+		}
+		// Add the character at the pointer, plus any additional characters we picked up.
+		output += this.substr(modI, width);
+	}
+	return output;
+}
+// Older, simpler code.
+//function reverse(x) {
+//	return x.split("").reverse().join();
+//}
+
+
 
 function standardizePhonoRules(s, sep) {
 	var a,r,e,sepEsc = sep.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -218,7 +249,6 @@ function changeTheWords(input, outtype, printrules) {
 								// Exception found. Do not replace.
 								if(printrules) {
 									// Log if needed/
-									//output.info.push("<span> " + change["rule" + cs].concat("</span><span> &rArr;</span><span> ", w, "</span><span> &rarr;</span><span> [unchanged due to exception]<br></span>"));
 									output.append($e("span", change["rule" + cs]));
 									span = $e("span", String.fromCharCode(0x21d2));
 									span.classList.add("arrow")
@@ -281,7 +311,7 @@ function changeTheWords(input, outtype, printrules) {
 			});
 			// Did we change anything? Do we need to report it?
 			if(printrules && (previous !== w)) {
-				//output.info.push("<span> " + change["rule" + cs].concat("</span><span> &rArr;</span><span> ", previous, "</span><span> &rarr;</span><span> ", w, "<br></span>"));
+				// Create message reporting the change.
 				output.info.push($e("span", change["rule" + cs]));
 				span = $e("span", String.fromCharCode(0x21d2));
 				span.classList.add("arrow");
@@ -293,7 +323,6 @@ function changeTheWords(input, outtype, printrules) {
 				span.appendChild($e("br"));
 				output.info.push(span);
 			}
-			//w = w.replace(change["from" + cs], change["to" + cs]);
 			// Increment counter.
 			c++;
 		}
@@ -409,7 +438,7 @@ function evolve() {
 					elements.push($e("strong", outputwords.shift()));
 				} else {
 					// Leave it as is.
-					elements.push($t(outputwords.shift()));
+					elements.push(outputwords.shift());
 				}
 				// Move to the next word in previousRun (if any).
 				previousRun && previousRun.shift();
@@ -453,8 +482,8 @@ function maybeParseCategories(possiblenewcats) {
 				//  OR the category doesn't have = as its second character...
 				//  OR the category has = somewhere else other than the second character...
 				// THEN this is a bad category.
-				output.push([$e("strong", "Error:"), $t(escapeHTML(thiscat)), $e("br"), $t("Categories must be of the form V=aeiou"),
-					$e("br"), $t("That is, a single letter, an equal sign, then a list of possible expansions.")]);
+				output.push([$e("strong", "Error:"), escapeHTML(thiscat), $e("br"), "Categories must be of the form V=aeiou",
+					$e("br"), "That is, a single letter, an equal sign, then a list of possible expansions."]);
 				//output.push("<strong>Error:</strong> " + escapeHTML(thiscat) + "<br>Categories must be of the form V=aeiou<br>That is, a single letter, an equal sign, then a list of possible expansions.");
 				// End the looping.
 				return false;
@@ -463,7 +492,7 @@ function maybeParseCategories(possiblenewcats) {
 				let thisname = thiscat.charAt(0);
 				if(cat.hasOwnProperty(thisname)) {
 					// If we have defined this category before, throw an error.
-					output.push([$e("strong", "Error:"), $t("You have defined category " + escapeHTML(thisname) + " more than once.")]);
+					output.push([$e("strong", "Error:"), "You have defined category " + escapeHTML(thisname) + " more than once."]);
 					//output.push("<strong>Error:</strong> You have defined category " + escapeHTML(thisname) + " more than once.");
 					return false;
 				} else {
@@ -537,55 +566,43 @@ function maybeParseSoundChanges(possiblenewchanges) {
 			// Sanity checks.
 			if(from === undefined || to === undefined || (from === "" && to === "")) {
 				// If there's no 'from' AND no 'to' then throw an error.
-				output.push([$e("strong", "Error:"), $t(String.fromCharCode(0x00a0) + rule), $e("br"),
-					$t("Sound changes must be in the form" + String.fromCharCode(0x00a0)),
+				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
 					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
-					$t(", where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is the initial sound," + String.fromCharCode(0x00a0)),
-					$e("em", "b"), $t(String.fromCharCode(0x00a0) + "is the sound it changes to, and" + String.fromCharCode(0x00a0)),
-					$t("x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
-					$t(String.fromCharCode(0x00a0) + "is the context of where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is, with" + String.fromCharCode(0x00a0)), $e("em", underscore),
-					$t(String.fromCharCode(0x00a0) + "representing the sound being changed." + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "or" + String.fromCharCode(0x00a0)), $e("em", "b"),
-					$t(String.fromCharCode(0x00a0) + "may be blank, but not both.")]);
-				//errorMessages.push("<strong>Error:</strong> " + escapeHTML(rule) + "<br>Sound changes must be in the form <em>a" + x + "b" + x + "x&sup1;" + y + "x&sup2;</em>, where <em>a</em> is the initial sound, <em>b</em> is the sound it changes to, and <em>x&sup1;" + y + "x&sup2;</em> is the context of where <em>a</em> is, with <em>" + y + "</em> representing the sound being changed. <em>a</em> may be blank or <em>b</em> may be blank, but not both.");
+					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
+					SPACE + "is the sound it changes to, and" + SPACE, 
+					"x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2),
+					SPACE + "is the context of where" + SPACE, $e("em", "a"), SPACE + "is, with" + SPACE, $e("em", underscore),
+					SPACE + "representing the sound being changed." + SPACE, $e("em", "a"), SPACE + "or" + SPACE, $e("em", "b"),
+					SPACE + "may be blank, but not both."]);
 				// End the looping.
 				return false;
 			} else if (pind < 0) {
 				// If patt isn't formatted correctly, throw an error.
-				output.push([$e("strong", "Error:"), $t(String.fromCharCode(0x00a0) + rule), $e("br"),
-					$t("Sound changes must be in the form" + String.fromCharCode(0x00a0)),
+				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
 					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
-					$t(", where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is the initial sound," + String.fromCharCode(0x00a0)),
-					$e("em", "b"), $t(String.fromCharCode(0x00a0) + "is the sound it changes to, and" + String.fromCharCode(0x00a0)),
+					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
+					SPACE + "is the sound it changes to, and" + SPACE, 
 					$e("em", "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
-					$t(String.fromCharCode(0x00a0) + "is the context of where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is, with" + String.fromCharCode(0x00a0)), $e("em", underscore),
-					$t(String.fromCharCode(0x00a0) + "representing the sound being changed. (You can omit the context, which will default to" + String.fromCharCode(0x00a0)),
-					$e("em", underscore), $t(String.fromCharCode(0x00a0) + "alone.)")]);
-				//errorMessages.push("<strong>Error:</strong> " + escapeHTML(rule) + "<br>Sound changes must be in the form <em>a" + x + "b" + x + "x&sup1;" + y + "x&sup2;</em>, where <em>a</em> is the initial sound, <em>b</em> is the sound it changes to, and <em>x&sup1;" + y + "x&sup2;</em> is the context of where <em>a</em> is, with <em>" + y + "</em> representing the sound being changed. (You can omit the context, which will default to <em>" + y + "</em> alone.)");
+					SPACE + "is the context of where" + SPACE, $e("em", "a"), SPACE + "is, with" + SPACE, $e("em", underscore),
+					SPACE + "representing the sound being changed. (You can omit the context, which will default to" + SPACE,
+					$e("em", underscore), SPACE + "alone.)"]);
 				// End the looping.
 				return false;
 			} else if (eind !== undefined && eind < 0) {
 				// If 'exception' is provided but incorrectly formatted, throw an error.
-				output.push([$e("strong", "Error:"), $t(String.fromCharCode(0x00a0) + rule), $e("br"),
-					$t("Sound changes must be in the form" + String.fromCharCode(0x00a0)),
-					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2) + splitter + "y" + String.fromCharCode(0x00b9) + underscore + "y" + String.fromCharCode(0x00b2)),
-					$t(", where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is the initial sound," + String.fromCharCode(0x00a0)),
-					$e("em", "b"), $t(String.fromCharCode(0x00a0) + "is the sound it changes to, and" + String.fromCharCode(0x00a0)),
+				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
+					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore
+						+ "x" + String.fromCharCode(0x00b2) + splitter + "y" + String.fromCharCode(0x00b9)
+						+ underscore + "y" + String.fromCharCode(0x00b2)),
+					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
+					SPACE + "is the sound it changes to, and" + SPACE, 
 					$e("em", "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
-					$t(String.fromCharCode(0x00a0) + "is the context of where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is, and" + String.fromCharCode(0x00a0)) +
+					SPACE + "is the context of where" + SPACE, $e("em", "a"), SPACE + "is, and" + SPACE,
 					$e("em", "y" + String.fromCharCode(0x00b9) + underscore + "y" + String.fromCharCode(0x00b2)),
-					$t(String.fromCharCode(0x00a0) + "is a context" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "cannot be, with" + String.fromCharCode(0x00a0)), $e("em", underscore),
-					$t(String.fromCharCode(0x00a0) + "representing the sound being changed. You can omit any of the " + String.fromCharCode(0x00a0)),
-					$e("em", splitter), $t("s and" + String.fromCharCode(0x00a0)), $e("em", underscore) +
-					$t("s but you cannot omit" + String.fromCharCode(0x00a0)), $e("em", underscore),
-					$t(String.fromCharCode(0x00a0) + "from either context.")]);
+					SPACE + "is a context" + SPACE, $e("em", "a"), SPACE + "cannot be, with" + SPACE, $e("em", underscore),
+					SPACE + "representing the sound being changed. You can omit any of the " + SPACE,
+					$e("em", splitter), "s and" + SPACE, $e("em", underscore) + "s but you cannot omit" + SPACE,
+					$e("em", underscore), SPACE + "from either context."]);
 				// End the looping.
 				return false;
 			}
@@ -596,7 +613,7 @@ function maybeParseSoundChanges(possiblenewchanges) {
 			// Note: Not going to check for proper boundary placement. If they screw it up, too bad.
 			// Handle the special case of metathesis, indicated by two backslashes.
 			if(to === "\\\\") {
-				to = reverse(from);
+				to = from.reverse();
 			}
 			// Interpret 'from' and 'to' as potential regexes bearing category matches and the like.
 			from = interpretFromAndTo(from);
@@ -676,8 +693,7 @@ function maybeParseSoundChanges(possiblenewchanges) {
 		if(tester && nchange > 0) {
 			previousChange = possiblenewchanges;
 		} else if (nchange <= 0) {
-			output.push([$e("strong", "Error:"), $t(String.fromCharCode(0x00a0) + "No sound changes provied.")]);
-			//errorMessages.push("<strong>Error:</strong> " + escapeHTML(rule) + "<br>Sound changes must be in the form <em>a" + x + "b" + x + "x&sup1;" + y + "x&sup2;</em>, where <em>a</em> is the initial sound, <em>b</em> is the sound it changes to, and <em>x&sup1;" + y + "x&sup2;</em> is the context of where <em>a</em> is, with <em>" + y + "</em> representing the sound being changed. <em>a</em> may be blank or <em>b</em> may be blank, but not both.");
+			output.push([$e("strong", "Error:"), SPACE + "No sound changes provied."]);
 		}
 	}
 	return output;
@@ -715,14 +731,11 @@ function maybeParseRewriteRules(possiblynewrules) {
 				i = -1;
 			} else {
 				// Badly formatted rule.
-				output.push([$e("strong", "Error:"), $t(String.fromCharCode(0x00a0) + testing), $e("br"),
-					$t("Rewrite rules must be in the form" + String.fromCharCode(0x00a0)), $e("em", "a" + splitter + "b"),
-					$t(", where" + String.fromCharCode(0x00a0)), $e("em", "a"),
-					$t(String.fromCharCode(0x00a0) + "is the initial pattern and" + String.fromCharCode(0x00a0)), $e("em", "b"),
-					$t(String.fromCharCode(0x00a0) + "is the pattern it changes to. ("), $e("em", "a" + oneway + "b"),
-					$t(String.fromCharCode(0x00a0) + "and" + String.fromCharCode(0x00a0)), $e("em", "a" + otherway + "b"),
-					$t(String.fromCharCode(0x00a0) + "are also acceptable for one-way rules.)")]);
-				//errorMessages.push("<strong>Error:</strong> " + escapeHTML(testing) + "<br>Rewrite rules must be in the form <em>a" + escapeHTML(splitter) + "b</em>, where <em>a</em> is the initial pattern and <em>b</em> is the pattern it changes to. (<em>a" + escapeHTML(oneway) + "b</em> and <em>a" + escapeHTML(otherway) +"b</em> are also acceptable for one-way rules.)");
+				output.push([$e("strong", "Error:"), SPACE + testing, $e("br"),
+					"Rewrite rules must be in the form" + SPACE, $e("em", "a" + splitter + "b"),
+					", where" + SPACE, $e("em", "a"), SPACE + "is the initial pattern and" + SPACE, $e("em", "b"),
+					SPACE + "is the pattern it changes to. (", $e("em", "a" + oneway + "b"),
+					SPACE + "and" + SPACE, $e("em", "a" + otherway + "b"), SPACE + "are also acceptable for one-way rules.)"]);
 				// End the looping.
 				return false;
 			}
