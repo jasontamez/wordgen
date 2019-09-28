@@ -27,7 +27,8 @@ Customizable = false,	// Used to indicate that saving is possible
 
 getter = new XMLHttpRequest(), // Used to download stored predefs
 predefFilename = "/predefs.txt", // Where they are stored
-predefs = {}; // Used to store predefs
+predefs = {}, // Used to store predefs
+SPACE = String.fromCharCode(0x00a0); // Non-breaking space for text formatting.
 
 
 // Helper functions to streamline some often-used function calls.
@@ -278,13 +279,14 @@ function getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDro
 function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	var	sent,w,nWord,output = "",
 		nSentences = getAdvancedNumber($i("sentences"), 30, 500);
+	// Go through the info for every sentence.
 	for (sent = 0; sent < nSentences; sent++) {
-		nWord = 1 + peakedPowerLaw(15, 5, 50);
-		for (w = 0; w < nWord; w++) {
-
+		nWord = peakedPowerLaw(15, 5, 50);
+		// Add each word one at a time.
+		for (w = 0; w <= nWord; w++) {
 			output += getOneWord(w === 0, monoRate, oneType, showSyls, dropoff, slowSylDrop);
-
-			if (w === nWord - 1) {
+			// If we're the last word, add punctuation.
+			if (w === nWord) {
 				output += ".....?!".charAt(Math.floor(Math.random() * 7));
 			}
 			output += " ";
@@ -297,22 +299,22 @@ function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 function createLex(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	var w,
 		output = $e("div"),
-	//var	output = "<div class=\"lexicon\" style=\"grid-template-columns: repeat(auto-fit, minmax(" + getAdvancedNumber("#wordLengthInEms", 10, 1000) + "em, 1fr) )\">\n",
-		nLexTotal = getAdvancedNumber($i("lexiconLength"), 150, 1000);
+		nLexTotal = getAdvancedNumber($i("lexiconLength"), 150, 1000),
+		words = [];
+	// Set up class.
 	output.classList.add("lexicon");
+	// Set up grid style.
 	output.style.gridTemplateColumns = "repeat(auto-fit, minmax(" + getAdvancedNumber($i("wordLengthInEms"), 10, 1000).toString() + "em, 1fr) )";
+	// Add words up to the limit.
 	for (w = 0; w < nLexTotal; w++) {
-		//if (w % 10 === 0) {
-		//	output += "<tr>";
-		//}
-		let frag = $e("div", getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop));
-		output.appendChild(frag);
-		//output += "<div>" + getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop) + "</div>";
-		//if (w % 10 === 9) {
-		//	output += "</tr>\n";
-		//}
+		words.push(getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop));
 	}
-	//output += "</table></div>\n";
+	// Alphabetize.
+	words.sort();
+	// Add each word in its own deparate DIV.
+	words.forEach(function(w) {
+		output.appendChild($e("div", w));
+	});
 	return output;
 }
 
@@ -320,6 +322,7 @@ function createLex(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop
 function createLongLex(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	var	w, output=$f(),
 		nLexTotal = getAdvancedNumber($i("largeLexiconLength"), 750, 5000);
+	// Add words up to the limit, followed by a BR each time.
 	for (w = 0; w < nLexTotal; w++) {
 		output.append(getOneWord(false, monoRate, oneType, showSyls, dropoff, slowSylDrop), $e("br"));
 	}
@@ -499,18 +502,18 @@ function generate() {
 	// Check that categories exist.
 	if(categories.length <= 0) {
 		frag = $f();
-		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have categories to generate text.");
+		frag.append($e("strong", "Missing:"), SPACE + "You must have categories to generate text.");
 		errorMessages.push(frag);
 	}
 
 	// Check that syllables exist.
 	if (oneType && wordInitSyls.length <= 0) {
 		frag = $f();
-		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have syllable types to generate text.");
+		frag.append($e("strong", "Missing:"), SPACE + "You must have syllable types to generate text.");
 		errorMessages.push(frag);
 	} else if (!oneType && (midWordSyls.length <= 0 || wordInitSyls.length <= 0 || wordFinalSyls.length <= 0 || singleWordSyls.length <= 0)) {
 		frag = $f();
-		frag.append($e("strong", "Missing:"), String.fromCharCode(0x00a0) + "You must have" + String.fromCharCode(0x00a0), $e("em", "all"), String.fromCharCode(0x00a0) + "syllable types to generate text.");
+		frag.append($e("strong", "Missing:"), SPACE + "You must have" + SPACE, $e("em", "all"), SPACE + "syllable types to generate text.");
 		errorMessages.push(frag);
 	}
 
@@ -574,7 +577,7 @@ function parseCategories(testcats) {
 				//  OR the category has = somewhere else other than the second character...
 				// THEN this is a bad category.
 				let frag = $f();
-				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + thiscat, $e("br"), "Categories must be of the form V=aeiou", $e("br"), "That is, a single letter, an equal sign, then a list of possible expansions.");
+				frag.append($e("strong", "Error:"), SPACE + thiscat, $e("br"), "Categories must be of the form V=aeiou", $e("br"), "That is, a single letter, an equal sign, then a list of possible expansions.");
 				em.push(frag);
 				// End the looping.
 				return false;
@@ -584,7 +587,7 @@ function parseCategories(testcats) {
 				if(newcats.hasOwnProperty(cname)) {
 					// If we have defined this category before, throw an error.
 					let frag = $f();
-					frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + "You have defined category " + thiscat + " more than once.");
+					frag.append($e("strong", "Error:"), SPACE + "You have defined category " + thiscat + " more than once.");
 					em.push(frag);
 					//errorMessages.push("<strong>Error:</strong> You have defined category " + escapeHTML(bar) + " more than once.");
 					return false;
@@ -628,7 +631,7 @@ function parseRewriteRules(rules) {
 			} else if(separatorPosition < 1 || separatorPosition !== rule.lastIndexOf(rewSep)) {
 				// If || is -1 (not found) or 0 (at beginning of rule) OR if there are more than once instance of || in the string, ignore this rule.
 				let frag = $f();
-				frag.append($e("strong", "Error:"), String.fromCharCode(0x00a0) + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
+				frag.append($e("strong", "Error:"), SPACE + rule, $e("br"), "Rewrite rules must be in the form x" + rewSep + "y", $e("br"), "That is, a rule (x), followed by " + (rewSep === "||" ? "two vertical bars" : "the exact text \"" + rewSep + "\"") + ", followed by a replacement expression (y, which may be blank).");
 				em.push(frag);
 				// End the looping.
 				return false;
