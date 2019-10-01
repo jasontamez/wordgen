@@ -86,65 +86,75 @@ String.prototype.reverse = function() {
 
 
 
-function standardizePhonoRules(s, sep) {
-	var a,r,e,sepEsc = sep.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+function standardizePhonoRules(searchString, separator) {
+	var arrowCodes,arrows,emptySet,sepEsc;
+	// Escape the separator for use in regexp objects.
+	sepEsc = separator.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
 	try {
-	// Replace empty set (slashed zero) with empty string.
-	// Diameter ⌀
-	// Empty set ∅
-	// Scandinavian letter Øø :: 00D8,00F8 :: not used, since these could easily be in conlangs
-	//
-	// Arrows and greater-than signs can be used in place of the first slash (sep).
-	// Right arrow →
-	// Paired right arrow ⇉
-	// Right arrow to bar ⇥
-	// Rightward thick arrow ⇨
-	// Rightward double arrow ⇒
-	// Rightward thick arrow from wall ⇰
-	// Three right arrows ⇶
-	// Rightward arrow with tail ↣
-	// Right arrow from bar ↦
-	// Right arrow with hook ↪
-	// Right dashed arrow ⇢
-	// Right open-headed arrow ⇾
-	// Right arrow with loop ↬
-	// Right wave arrow ↝
-	// Right two-headed arrow ↠
-	// Right arrow w/small circle ⇴
-	// Right triple arrow ⇛
-	// Right harpoons ⇀ ⇁
-	// Right squiggle arrow ⇝
-	// Right arrow w/double vertical stroke ⇻
-	a = [0x2192, 0x21C9, 0x21E5, 0x21E8, 0x21D2, 0x21F0, 0x21F6, 0x21A3, 0x21A6, 0x21AA, 0x21E2, 0x21FE, 0x21AC, 0x219D, 0x21A0, 0x21F4, 0x21DB, 0x21C0, 0x21C1, 0x21DD, 0x21FB];
-	// empty set
-	e = new RegExp("(?<=^)(?<="+sepEsc+")\s*["+String.fromCharCode(0x2300)+String.fromCharCode(0x2205)+"]\s*(?="+sepEsc+"|$)", "g");
-	// arrows
-	r = new RegExp("(?<!"+sepEsc+".*)[>"+a.map(x => String.fromCharCode(x)).join("")+"]", "g");
-	return s.replace(e, "").replace(r, sep);
+		// Replace empty set (slashed zero) with empty string.
+		// Diameter ⌀
+		// Empty set ∅
+		// Scandinavian letter Øø :: 00D8,00F8 :: not used, since these could easily be in conlangs
+		//
+		// Arrows and greater-than signs can be used in place of the first slash (sep).
+		// Right arrow →
+		// Paired right arrow ⇉
+		// Right arrow to bar ⇥
+		// Rightward thick arrow ⇨
+		// Rightward double arrow ⇒
+		// Rightward thick arrow from wall ⇰
+		// Three right arrows ⇶
+		// Rightward arrow with tail ↣
+		// Right arrow from bar ↦
+		// Right arrow with hook ↪
+		// Right dashed arrow ⇢
+		// Right open-headed arrow ⇾
+		// Right arrow with loop ↬
+		// Right wave arrow ↝
+		// Right two-headed arrow ↠
+		// Right arrow w/small circle ⇴
+		// Right triple arrow ⇛
+		// Right harpoons ⇀ ⇁
+		// Right squiggle arrow ⇝
+		// Right arrow w/double vertical stroke ⇻
+		//
+		// Make an array of arrow characters (by character code number). Do this first because it shouldn't raise an error.
+		arrowCodes = [0x2192, 0x21C9, 0x21E5, 0x21E8, 0x21D2, 0x21F0, 0x21F6, 0x21A3, 0x21A6, 0x21AA, 0x21E2, 0x21FE, 0x21AC, 0x219D, 0x21A0, 0x21F4, 0x21DB, 0x21C0, 0x21C1, 0x21DD, 0x21FB];
+		// Make a regexp looking for empty-set characters.
+		emptySet = new RegExp("(?<=^)(?<="+sepEsc+")\s*["+String.fromCharCode(0x2300)+String.fromCharCode(0x2205)+"]\s*(?="+sepEsc+"|$)", "g");
+		// Make a regexp looking for arrow characters.
+		arrows = new RegExp("(?<!"+sepEsc+".*)[>"+arrowCodes.map(x => String.fromCharCode(x)).join("")+"]", "g");
+		// Return the search string with empty sets and arrows replaced with the symbol (separator) used by this script.
+		return searchString.replace(emptySet, "").replace(arrows, separator);
 	} catch (error) {
 		if(error.name === "SyntaxError") {
-			// Most likely, we don't support lookbehinds.
-			e = new RegExp("(^|"+sepEsc+")(\s*["+String.fromCharCode(0x2300)+String.fromCharCode(0x2205)+"]\s*)("+sepEsc+"|$)");
-			r = new RegExp("("+sepEsc+".*)([>"+a.map(x => String.fromCharCode(x)).join("")+"])");
-			let temp;
-			while((temp = e.exec(s)) !== null) {
-				// [full match, start, match, end]
-				let l = temp[0].length,
-					li = e.lastIndex,
-					start = s.slice(0, li - l),
-					end = s.slice(li);
-				s = start + temp[1] + temp[3] + end;
+			// Most likely, this error will happen because the browser doesn't support lookbehinds.
+			let regexpResult;
+			// Make a regexp looking for empty-set characters.
+			emptySet = new RegExp("(^|"+sepEsc+")(\s*["+String.fromCharCode(0x2300)+String.fromCharCode(0x2205)+"]\s*)("+sepEsc+"|$)", "g");
+			// Make a regexp looking for arrow characters.
+			arrows = new RegExp("("+sepEsc+".*)([>"+arrowCodes.map(x => String.fromCharCode(x)).join("")+"])", "g");
+			// Repace instances of the empty set with an empty string by looping through it with exec().
+			// exec(), when used multiple times, will start from the end of the last match.
+			while((regexpResult = emptySet.exec(searchString)) !== null) {
+				// regexpResult = [full match, start of definition, matched empty-set character, end of definition]
+				let l = regexpResult[0].length, // Length of the full match.
+					li = emptySet.lastIndex, // Where we ended searching.
+					start = searchString.slice(0, li - l), // Everything before the match.
+					end = searchString.slice(li); // Everything after the match.
+				// Replace the searchString with only the empty-set removed.
+				searchString = start + regexpResult[1] + regexpResult[3] + end;
 			}
-			while((temp = r.exec(s)) !== null) {
-				// [full match, start, match]
-				let l = temp[0].length,
-					li = r.lastIndex,
-					start = s.slice(0, li - l),
-					end = s.slice(li);
-				s = start + temp[1] + sep + end;
+			while((regexpResult = arrows.exec(searchString)) !== null) {
+				// regexpResult = [full match, start of definition, matched arrow]
+				let l = regexpResult[0].length, // Length of the full match
+					li = arrows.lastIndex,
+					start = searchString.slice(0, li - l),
+					end = searchString.slice(li);
+				searchString = start + regexpResult[1] + separator + end;
 			}
 		}
-		return s;
+		return searchString;
 	}
 }
 
@@ -160,6 +170,7 @@ function changeTheWords(input, outtype, printrules) {
 	input.forEach(function(original) {
 		var w = original.trim(),previous,c = 0,replacements;
 		// Is this even a word?
+		// Check to see if anything's left after we trim whitspace.
 		if(w === "") {
 			// Nothing there. Skip!
 			return;
@@ -249,6 +260,8 @@ function changeTheWords(input, outtype, printrules) {
 								// Exception found. Do not replace.
 								if(printrules) {
 									// Log if needed/
+
+									// [rule] [arrow] [original word] [arrow] "[unchanged due to exception]"
 									output.append($e("span", change["rule" + cs]));
 									span = $e("span", String.fromCharCode(0x21d2));
 									span.classList.add("arrow")
@@ -312,6 +325,7 @@ function changeTheWords(input, outtype, printrules) {
 			// Did we change anything? Do we need to report it?
 			if(printrules && (previous !== w)) {
 				// Create message reporting the change.
+				// [rule] [arrow] [original word] [arrow] [changed to]
 				output.info.push($e("span", change["rule" + cs]));
 				span = $e("span", String.fromCharCode(0x21d2));
 				span.classList.add("arrow");
@@ -358,7 +372,6 @@ function changeTheWords(input, outtype, printrules) {
 		div.classList.add("soundChangeEffects");
 		div.append(...output.info);
 		output.info = [div];
-		//output.info = ["<div class=\"soundChangeEffects\">" + output.info.join("") + "</div>"];
 	}
 	// Add other information to the info.
 	output.info.push($e("div", "Categories found: " + cat.index));
@@ -482,9 +495,12 @@ function maybeParseCategories(possiblenewcats) {
 				//  OR the category doesn't have = as its second character...
 				//  OR the category has = somewhere else other than the second character...
 				// THEN this is a bad category.
-				output.push([$e("strong", "Error:"), escapeHTML(thiscat), $e("br"), "Categories must be of the form V=aeiou",
-					$e("br"), "That is, a single letter, an equal sign, then a list of possible expansions."]);
-				//output.push("<strong>Error:</strong> " + escapeHTML(thiscat) + "<br>Categories must be of the form V=aeiou<br>That is, a single letter, an equal sign, then a list of possible expansions.");
+
+				// Error: [category]
+				// Categories must be in the form V=aeiou
+				// That is, a single letter, am equals sign, then a list of possible expansions.
+				output.push([$e("strong", "Error:"), SPACE + escapeHTML(thiscat), $e("br"), "Categories must be of the form V=aeiou",
+					$e("br"), "That is, a single letter, an equal ssign, then a list of possible expansions."]);
 				// End the looping.
 				return false;
 			} else {
@@ -492,8 +508,9 @@ function maybeParseCategories(possiblenewcats) {
 				let thisname = thiscat.charAt(0);
 				if(cat.hasOwnProperty(thisname)) {
 					// If we have defined this category before, throw an error.
-					output.push([$e("strong", "Error:"), "You have defined category " + escapeHTML(thisname) + " more than once."]);
-					//output.push("<strong>Error:</strong> You have defined category " + escapeHTML(thisname) + " more than once.");
+
+					// Error: You have defined category [category] more than once.
+					output.push([$e("strong", "Error:"), "SPACE + You have defined category " + escapeHTML(thisname) + " more than once."]);
 					return false;
 				} else {
 					// Add this category to the category index.
@@ -566,6 +583,10 @@ function maybeParseSoundChanges(possiblenewchanges) {
 			// Sanity checks.
 			if(from === undefined || to === undefined || (from === "" && to === "")) {
 				// If there's no 'from' AND no 'to' then throw an error.
+				// If patt isn't formatted correctly, throw an error.
+				// ERROR: [rule]
+				// Sound changes must be in the form a/b/x1_x2, where a is the initial sound, b is the sound it changes to, and
+				//  x1_x2 is the context of where a is, with _ representing the sound being changed. a or b may be blank, but not both.
 				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
 					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
 					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
@@ -578,7 +599,11 @@ function maybeParseSoundChanges(possiblenewchanges) {
 				return false;
 			} else if (pind < 0) {
 				// If patt isn't formatted correctly, throw an error.
-				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
+					// ERROR: [rule]
+				// Sound changes must be in the form a/b/x1_x2, where a is the initial sound, b is the sound it changes to, and
+				//  x1_x2 is the context of where a is, with _ representing the sound being changed. (You can omit the context,
+				//  which will default to _ alone.)
+			output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
 					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
 					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
 					SPACE + "is the sound it changes to, and" + SPACE, 
@@ -590,12 +615,17 @@ function maybeParseSoundChanges(possiblenewchanges) {
 				return false;
 			} else if (eind !== undefined && eind < 0) {
 				// If 'exception' is provided but incorrectly formatted, throw an error.
+
+				// ERROR: [rule]
+				// Sound changes must be in the form a/b/x1_x2/y1_y2, where a is the initial sound, b is the sound it changes to,
+				//  x1_x2 is the context of where a is, and y1_y2 is a context a cannot be, with _ representing the sound being changed.
+				//  You can omit any of the /s and _s but you cannot omit _ from either context.
 				output.push([$e("strong", "Error:"), SPACE + rule, $e("br"), "Sound changes must be in the form" + SPACE,
 					$e("em", "a" + splitter + "b" + splitter + "x" + String.fromCharCode(0x00b9) + underscore
 						+ "x" + String.fromCharCode(0x00b2) + splitter + "y" + String.fromCharCode(0x00b9)
 						+ underscore + "y" + String.fromCharCode(0x00b2)),
 					", where" + SPACE, $e("em", "a"), SPACE + "is the initial sound," + SPACE, $e("em", "b"),
-					SPACE + "is the sound it changes to, and" + SPACE, 
+					SPACE + "is the sound it changes to," + SPACE, 
 					$e("em", "x" + String.fromCharCode(0x00b9) + underscore + "x" + String.fromCharCode(0x00b2)),
 					SPACE + "is the context of where" + SPACE, $e("em", "a"), SPACE + "is, and" + SPACE,
 					$e("em", "y" + String.fromCharCode(0x00b9) + underscore + "y" + String.fromCharCode(0x00b2)),
@@ -693,6 +723,8 @@ function maybeParseSoundChanges(possiblenewchanges) {
 		if(tester && nchange > 0) {
 			previousChange = possiblenewchanges;
 		} else if (nchange <= 0) {
+			// Whoops, foud one last error: no sound changes!
+			// Error: No sound changes provided.
 			output.push([$e("strong", "Error:"), SPACE + "No sound changes provied."]);
 		}
 	}
@@ -731,6 +763,10 @@ function maybeParseRewriteRules(possiblynewrules) {
 				i = -1;
 			} else {
 				// Badly formatted rule.
+
+				// Error: [rule]
+				// Rewrite rules must be in the form a||b where a is the initial pattern and b is the pattern it changes to.
+				//  (>> and << are also acceptable for one-way rules.)
 				output.push([$e("strong", "Error:"), SPACE + testing, $e("br"),
 					"Rewrite rules must be in the form" + SPACE, $e("em", "a" + splitter + "b"),
 					", where" + SPACE, $e("em", "a"), SPACE + "is the initial pattern and" + SPACE, $e("em", "b"),
@@ -942,7 +978,6 @@ function interpretGivenChanges(s, b, preAndNotPost) {
 
 // Display the IPA and other stuff.
 function showIPA() {
-	//$i("outputText").innerHTML = returnIPAPlus("<span class=\"desc\">", "</span>\n<div class=\"extraGroup\">", "</div>\n", "<br><br>");
 	erase();
 	$i("p_chars").appendChild(createIPASymbolsFragment([$e("br"), $e("br")]));
 }
