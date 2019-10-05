@@ -7,10 +7,15 @@
 // Display the IPA and other stuff.
 function createIPASymbolsFragment(glueNodes = [], titleTag = "span", titleClass = "desc", groupTag = "div", groupClass = "extraGroup", wrapperTag = "span") {
 	var frag = document.createDocumentFragment(),
-		el = function(x) { return document.createElement(x); },
+		el = function(x) {
+			return document.createElement(x);
+		},
 		frst = [ 0x00a1, 0x00bf, 0x00d8, 0x00f8, 0x2c60, 0xa722, 0xa78b, 0xa7b0, 0xab30, 0xab60, "x",   0x0250, "x",                0x0370, 0x0376, 0x037a, 0x0386, 0x0388, 0x038c, 0x038e, 0x03a3, 0xab65, "x",        0x0400, 0x048a, 0xa640, 0xa680, "x",        0x0531, 0x0561 ],
 		last = [ 0x00a1, 0x00d6, 0x00f6, 0x024f, 0x2c7f, 0xa787, 0xa7ad, 0xa7b7, 0xab5a, 0xab64, "IPA", 0x02ff, "Greek and Coptic", 0x0373, 0x0377, 0x037f, 0x0386, 0x038a, 0x038c, 0x03a1, 0x03ff, 0xab65, "Cyrillic", 0x0482, 0x052f, 0xa66e, 0xa69b, "Armenian", 0x0556, 0x0587 ],
-		i, j, len, word = el(titleTag);
+		i,
+		j,
+		len,
+		word = el(titleTag);
 	word.textContent = "Latin:";
 	word.classList.add(titleClass);
 	frag.appendChild(word);
@@ -28,7 +33,7 @@ function createIPASymbolsFragment(glueNodes = [], titleTag = "span", titleClass 
 			// Add it to the fragment.
 			frag.appendChild(word);
 			// Add glue (if any)
-			glueNodes.forEach( glue => frag.appendChild(glue.cloneNode(true)) );
+			glueNodes.forEach(glue => frag.appendChild(glue.cloneNode(true)));
 			// Make new group.
 			word = el(groupTag);
 			word.classList.add(groupClass);
@@ -50,7 +55,6 @@ function createIPASymbolsFragment(glueNodes = [], titleTag = "span", titleClass 
 }
 
 function getUnicodeName(what) {
-
 	switch (what) {
 		case 161:
 			return "INVERTED EXCLAMATION MARK";
