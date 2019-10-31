@@ -208,7 +208,6 @@ p.desc {
 	text-indent: -1em;
 	padding: 0 2em 1em 2em;
 	padding-right: calc(100% - 45em);
-
 }
 p.desc a {
 	font-weight: bold;
@@ -260,11 +259,6 @@ button {
 	margin-left: 0.7em;
 	margin-bottom: 1em;
 }
-button.minor {
-	font-size: 75%;
-	background: var(--button-bg-faded);
-	border-color: var(--button-border-faded);
-}
 #parameters.evolve button {
 	margin: 0.25em 0 0.25em 0.5em;
 }
@@ -283,6 +277,16 @@ button:active {
 	border-style: inset;
 	box-shadow: 0 0 0.15em 0.05em var(--shadow);
 	padding: 0.15em 0.45em 0.1em 0.55em;
+}
+button.minor {
+	font-size: 75%;
+}
+button.minor,
+button.minor:hover,
+button.minor:focus,
+button.minor:active {
+	background: var(--button-bg-faded);
+	border-color: var(--button-border-faded);
 }
 .buttongroup {
 	white-space: nowrap;
