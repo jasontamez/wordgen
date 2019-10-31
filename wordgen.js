@@ -17,14 +17,13 @@ var categories, // Used to interpret the categories
 	previousWordFinalSyls = false,
 	previousSingleWordSyls = false, // These four hold previous syllable boxes, to save processing
 	rew, // Holds rewrite rules
-	nrew, //  .length
 	previousRew = false, // Holds previous rewrite rules, to save processing
 	rewSep = false, // Separates rewrite selector from replacement
 	CustomInfo = false, // Used by Defaults to check localStorage for saved info
 	Customizable = false, // Used to indicate that saving is possible
 	getter = new XMLHttpRequest(), // Used to download stored predefs
 	predefFilename = "/predefs.txt", // Where they are stored
-	predefs = {}, // Used to store predefs
+	predefs = new Map(), // Used to store predefs
 	SPACE = String.fromCharCode(0x00a0); // Non-breaking space for text formatting.
 
 // Helper functions to streamline some often-used function calls.
@@ -87,13 +86,14 @@ function handleCategoriesInRewriteRule(rule) {
 		chunk = testing.shift();
 		// Check each bit one at a time.
 		while (testing.length) {
+			let testCat = categories.get(catt);
 			bit = testing.shift();
 			// What's the category being negated?
 			catt = bit.charAt(0);
 			// Is it actually a category?
-			if (categories.index.indexOf(catt) !== -1) {
+			if (test !== undefined) {
 				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
-				chunk += "[^" + categories[catt] + "]";
+				chunk += "[^" + testCat + "]";
 				// If category not found, it gets ignored.
 			}
 			// Remove category identifier, add to saved chunk.
@@ -106,13 +106,14 @@ function handleCategoriesInRewriteRule(rule) {
 		chunk = testing.shift();
 		// Check each bit one at a time.
 		while (testing.length) {
+			let testCat = categories.get(catt);
 			bit = testing.shift();
 			// What's the category?
 			catt = bit.charAt(0);
 			// Is it actually a category?
-			if (categories.index.indexOf(catt) !== -1) {
+			if (testCat !== undefined) {
 				// Category found. Replace with [a-z] construct, where a-z is the category contents.
-				chunk += "[" + categories[catt] + "]";
+				chunk += "[" + testCat + "]";
 				// If category not found, it gets ignored.
 			}
 			// Remove category identifier, add to saved chunk.
@@ -127,14 +128,19 @@ function handleCategoriesInRewriteRule(rule) {
 
 // Apply rewrite rules to input.
 function applyRewriteRules(input) {
-	var counter, parse;
+	//var counter, parse;
+	//// Go through each rule one by one.
+	//for (counter = 0; counter < nrew; counter++) {
+	//	// Grab the rule and replacement.
+	//	parse = rew[counter.toString()];
+	//	// Apply the rule to the input with the replacement.
+	//	input = input.replace(parse[0], parse[1]);
+	//}
 	// Go through each rule one by one.
-	for (counter = 0; counter < nrew; counter++) {
-		// Grab the rule and replacement.
-		parse = rew[counter.toString()];
+	rew.forEach(function(repl, rx) {
 		// Apply the rule to the input with the replacement.
-		input = input.replace(parse[0], parse[1]);
-	}
+		input = input.replace(rx, repl);
+	});
 	return input;
 }
 
@@ -182,22 +188,20 @@ function oneSyllable(word, which, dropoff, slowSylDrop) {
 
 	// For each letter in the pattern, find the category
 	for (counter = 0; counter < pattern.length; counter++) {
-		theCat = pattern.charAt(counter);
+		theCat = categories.get(pattern.charAt(counter));
 		// Go find it in the categories list
-		if (categories.index.indexOf(theCat) === -1) {
+		if (theCat === undefined) {
 			// Not found: output syllable directly
 			word += theCat;
 		} else {
-			// Choose from this category
-			expansion = categories[theCat];
 			// Get a random letter from the category
 			if (dropoff === 0) {
-				randomNum = Math.random() * expansion.length;
+				randomNum = Math.random() * theCat.length;
 			} else {
-				randomNum = powerLaw(expansion.length, dropoff);
+				randomNum = powerLaw(theCat.length, dropoff);
 			}
 			// Add it to the word
-			word += expansion.charAt(randomNum);
+			word += theCat.charAt(randomNum);
 		}
 	}
 
@@ -414,14 +418,12 @@ function getEverySyllable() {
 
 // Go through categories recursively, adding finished words to the given Set.
 function recurseCategories(givenSet, input, toGo) {
-	var next = [],
+	var next = toGo.slice(0),
 		now;
-	// Copy given array.
-	next.push(...toGo);
 	// Find new category.
-	now = next.shift();
+	now = categories.get(next.shift());
 	// Check to see if the category exists.
-	if (categories.index.indexOf(now) === -1) {
+	if (now === undefined) {
 		// It doesn't exist. Not a category. Save directly into input.
 		input += now;
 		if (!next.length) {
@@ -433,14 +435,14 @@ function recurseCategories(givenSet, input, toGo) {
 		}
 	} else if (next.length > 0) {
 		// Category exists. More to come.
-		categories[now].split("").forEach(function(char) {
+		now.split("").forEach(function(char) {
 			// Recurse deeper.
 			recurseCategories(givenSet, input + char, next);
 		});
 	} else {
 		// Category exists. Final category.
 		// Go through each character in the run.
-		categories[now].split("").forEach(function(char) {
+		now.split("").forEach(function(char) {
 			// Run this info through rewrite rules and save into the Set.
 			givenSet.add(applyRewriteRules(input + char));
 		});
@@ -499,7 +501,7 @@ function generate() {
 	if (input !== previousCat) {
 		let testing = parseCategories(input);
 		// If we found no errors, save the categories.
-		if (testing.flag && testing.cats.length > 0) {
+		if (testing.flag && testing.cats.size > 0) {
 			previousCat = input;
 			categories = testing.cats;
 		} else {
@@ -547,8 +549,8 @@ function generate() {
 		// If we found no errors, save the rules.
 		if (testing.flag) {
 			previousRew = input;
-			// nrew === 0 is ok: sometimes you don't need to rewrite anything.
-			nrew = testing.len;
+			//// nrew === 0 is ok: sometimes you don't need to rewrite anything.
+			//nrew = testing.len;
 			rew = testing.rules;
 		} else {
 			errorMessages.push(...testing.msgs);
@@ -556,7 +558,7 @@ function generate() {
 	}
 
 	// Check that categories exist.
-	if (categories.length <= 0) {
+	if (categories.size <= 0) {
 		frag = $f();
 		frag.append(
 			$e("strong", "Missing:"),
@@ -650,10 +652,7 @@ function parseCategories(testcats) {
 		// Set up an object for all categories.
 		// Hold on to the number of categories.
 		// Set up an index for the categories.
-		newcats = {
-			length: potentials.length,
-			index: ""
-		},
+		newcats = new Map(),
 		// Hold error messages.
 		msgs = [],
 		// Go through each category one at a time
@@ -665,7 +664,7 @@ function parseCategories(testcats) {
 			const len = thiscat.length;
 			if (len === 0) {
 				// Blank category. Ignore this.
-				newcats.length--;
+				//newcats.length--;
 			} else if (
 				len < 3 ||
 				thiscat.indexOf("=") !== 1 ||
@@ -690,7 +689,7 @@ function parseCategories(testcats) {
 			} else {
 				// Isolate the category name.
 				let cname = thiscat.charAt(0);
-				if (newcats.hasOwnProperty(cname)) {
+				if (newcats.get(cname) !== undefined) {
 					// If we have defined this category before, throw an error.
 					let frag = $f();
 					frag.append(
@@ -700,10 +699,11 @@ function parseCategories(testcats) {
 					msgs.push(frag);
 					return false;
 				} else {
-					// Add this category to the category index.
-					newcats.index += cname;
+					//// Add this category to the category index.
+					//newcats.index += cname;
 					// Save this category info.
-					newcats[cname] = thiscat.substring(2);
+					//newcats[cname] = thiscat.substring(2);
+					newcats.set(cname, thiscat.substring(2));
 				}
 			}
 			// Continue the loop.
@@ -721,12 +721,12 @@ function parseCategories(testcats) {
 // Test potential rewrite rules to make sure they're formatted correctly.
 function parseRewriteRules(rules) {
 	var potentials = rules.split(/\r?\n/),
-		// Save the length of the rules.
-		plen = potentials.length,
-		// Set up a counter to give each rule a unique ID.
-		counter = 0,
-		// Set up newrules as a blank object.
-		newrules = new Object(),
+		//// Save the length of the rules.
+		//plen = potentials.length,
+		//// Set up a counter to give each rule a unique ID.
+		//counter = 0,
+		// Set up newrules as a blank map.
+		newrules = new Map(),
 		// Set up an array for error messages.
 		msgs = [],
 		// Go through each rule one at a time.
@@ -735,7 +735,6 @@ function parseRewriteRules(rules) {
 			var separatorPosition = rule.indexOf(rewSep);
 			if (rule.trim() === "") {
 				// Ignore blank lines.
-				plen--;
 			} else if (
 				separatorPosition < 1 ||
 				separatorPosition !== rule.lastIndexOf(rewSep)
@@ -766,9 +765,10 @@ function parseRewriteRules(rules) {
 						"g" // for case insensitivity change "g" to "gi"
 					);
 				// Save this rule.
-				newrules[counter.toString()] = [newrule, replacement];
+				//newrules[(newrules.size + 1).toString()] = [newrule, replacement];
+				newrules.set(newrule, replacement);
 				// Increment the counter.
-				counter++;
+				//counter++;
 			}
 			// Continue the loop.
 			return true;
@@ -778,7 +778,7 @@ function parseRewriteRules(rules) {
 	return {
 		flag: tester,
 		rules: newrules,
-		len: plen,
+		//len: plen,
 		msgs: msgs
 	};
 }
@@ -954,7 +954,7 @@ function doImport(
 		$i("rewSep").value = m[16];
 	}
 	// Hide/show boxes if needed.
-	syllablicChangeDetection();
+	syllabicChangeDetection();
 	// Return true if predef loaded correctly.
 	if (!loud) {
 		return true;
@@ -1113,7 +1113,7 @@ function saveCustom(test) {
 	// Set predef drop-down to Custom.
 	predef.value = "pd-1";
 	// Save predef info.
-	predefs["pd-1"] = doExport(false);
+	predefs.set("pd-1", doExport(false));
 	// Alert success.
 	doAlert("Saved to browser.", "", "success");
 }
@@ -1169,7 +1169,7 @@ function clearCustom(test) {
 	// Remove "Custom" from drop-down menu.
 	$q('#predef option[value="-1"]').remove();
 	// Remove info.
-	delete predefs["pd-1"];
+	predefs.delete("pd-1");
 	// Alert success.
 	doAlert("Cleared from browser.", "", "success");
 }
@@ -1190,8 +1190,8 @@ function advancedOptions() {
 function loadPredef() {
 	var pd = $i("predef").value;
 	console.log("Opening predef [" + pd + "]");
-	doImport(predefs[pd], false, false);
-	syllablicChangeDetection();
+	doImport(predefs.get(pd), false, false);
+	syllabicChangeDetection();
 }
 
 // Load predefs from file.
@@ -1201,14 +1201,14 @@ getter.send();
 $i("loadPredefButton").disabled = true;
 $i("predef").disabled = true;
 // Save default info as "Starter"
-predefs["pd1"] = doExport(null);
-predefs.counter = 1;
+predefs.set("pd1", doExport(null));
 
 // Called async when predefs are being loaded
 function parseResult() {
 	//console.log(getter);
 	// Grab info.
-	var loaded = getter.responseText.trim().split(/\n--END--/);
+	var loaded = getter.responseText.trim().split(/\n--END--/),
+		counter = predefs.size + (predefs.get("pd-1") === undefined ? 0 : -1);
 	// Store info.
 	loaded.forEach(function(p) {
 		// Info should start with a Name and a linebreak.
@@ -1233,10 +1233,10 @@ function parseResult() {
 				// opt is a new <option> we're adding to it
 				console.log("Saving predef: " + name);
 				// Increase counter, generate a unique name.
-				predefs.counter++;
-				val += predefs.counter.toString();
+				counter++;
+				val += counter.toString();
 				// Save info internally.
-				predefs[val] = info;
+				predefs.set(val, info);
 				// Set properties of <option>
 				opt.textContent = name;
 				opt.value = val;
@@ -1256,7 +1256,7 @@ function parseResult() {
 }
 
 // If the "one type of syllables" box is [un]checked, change which boxes are visible.
-function syllablicChangeDetection() {
+function syllabicChangeDetection() {
 	//console.log("fired");
 	if ($i("oneType").checked) {
 		$a("#p_multi,.multiswap").forEach(w => w.classList.add("hidden"));
@@ -1301,7 +1301,7 @@ if (typeof Storage !== "undefined") {
 		}
 		propTrue.forEach(box => ($i(box).checked = true));
 		propFalse.forEach(box => ($i(box).checked = false));
-		predefs["pd-1"] = doExport(false);
+		predefs.set("pd-1", doExport(false));
 		option.value = "pd-1";
 		option.textContent = "Custom";
 		$i("predef").prepend(option);
@@ -1309,13 +1309,13 @@ if (typeof Storage !== "undefined") {
 	}
 	//console.log(propTrue);
 	//console.log(propFalse);
-	syllablicChangeDetection();
+	syllabicChangeDetection();
 }
 
 // Toggle boxes when "one type of syllable" box is [un]checked.
-$i("oneType").addEventListener("change", syllablicChangeDetection);
+$i("oneType").addEventListener("change", syllabicChangeDetection);
 // Fire it right now.
-syllablicChangeDetection();
+syllabicChangeDetection();
 
 // Set up the buttons.
 $i("advancedOpenButton").addEventListener("click", advancedOptions);
