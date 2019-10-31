@@ -86,10 +86,10 @@ function handleCategoriesInRewriteRule(rule) {
 		chunk = testing.shift();
 		// Check each bit one at a time.
 		while (testing.length) {
-			let testCat = categories.get(catt);
+			let testCat;
 			bit = testing.shift();
 			// What's the category being negated?
-			catt = bit.charAt(0);
+			testCat = categories.get(bit.charAt(0));
 			// Is it actually a category?
 			if (test !== undefined) {
 				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
@@ -106,10 +106,10 @@ function handleCategoriesInRewriteRule(rule) {
 		chunk = testing.shift();
 		// Check each bit one at a time.
 		while (testing.length) {
-			let testCat = categories.get(catt);
+			let testCat;
 			bit = testing.shift();
 			// What's the category?
-			catt = bit.charAt(0);
+			testCat = categories.get(bit.charAt(0));
 			// Is it actually a category?
 			if (testCat !== undefined) {
 				// Category found. Replace with [a-z] construct, where a-z is the category contents.
