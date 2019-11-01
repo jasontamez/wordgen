@@ -603,7 +603,7 @@ function maybeParseCategories(possiblenewcats) {
 				// Error: You have defined category [category] more than once.
 				output.push([
 					$e("strong", "Error:"),
-					"SPACE + You have defined category " +
+					SPACE + "You have defined category " +
 						escapeHTML(thisname) +
 						" more than once."
 				]);
