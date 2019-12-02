@@ -183,16 +183,17 @@ function oneSyllable(word, which, dropoff, slowSylDrop) {
 	var pattern = syllPatternPick(which, slowSylDrop),
 		counter,
 		theCat,
-		expansion,
-		randomNum;
+		randomNum,
+		pattFound;
 
 	// For each letter in the pattern, find the category
 	for (counter = 0; counter < pattern.length; counter++) {
-		theCat = categories.get(pattern.charAt(counter));
+		pattFound = pattern.charAt(counter);
+		theCat = categories.get(pattFound);
 		// Go find it in the categories list
 		if (theCat === undefined) {
 			// Not found: output syllable directly
-			word += theCat;
+			word += pattFound;
 		} else {
 			// Get a random letter from the category
 			if (dropoff === 0) {
