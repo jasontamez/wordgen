@@ -27,7 +27,12 @@ var $WG = {
 	getter: new XMLHttpRequest(), // Used to download stored predefs
 	predefFilename: "/predefs.txt", // Where they are stored
 	predefs: new Map(), // Used to store predefs
-	SPACE: String.fromCharCode(0x00a0) // Non-breaking space for text formatting
+	SPACE: String.fromCharCode(0x00a0), // Non-breaking space for text formatting
+	dropoff: 30, // 0-100 percentage that the first letter in a category gets picked
+	monoRate: 20, // 0-100 percentage that a given word is monosyllabic
+	slowSylDrop: false, // Do we slow the multisyllabic dropoff?
+	showSyls: false, // Do we show syllable breaks?
+	oneType: true // Is there only one type of syllable?
 };
 
 // Helper functions to streamline some often-used function calls.
@@ -55,6 +60,11 @@ function $t(text) {
 }
 function $f() {
 	return document.createDocumentFragment();
+}
+
+// A quick and dirty way to escape HTML characters by turning a string into a text node and back again.
+function escapeHTML(html) {
+	return $e("p", html).innerHTML;
 }
 
 // Trim elements of whitespace and remove blank elements from given array.
@@ -182,10 +192,11 @@ function peakedPowerLaw(max, mode, pct) {
 }
 
 // Output a single syllable - this is the guts of the program
-function oneSyllable(word, which, dropoff, slowSylDrop) {
+function oneSyllable(word, syllableBoxChoice) {
 	// Choose the pattern
-	var pattern = syllPatternPick(which, slowSylDrop),
+	var pattern = syllPatternPick(syllableBoxChoice),
 		catt = $WG.categories,
+		dropoff = $WG.dropoff,
 		counter,
 		theCat,
 		randomNum,
@@ -211,14 +222,14 @@ function oneSyllable(word, which, dropoff, slowSylDrop) {
 		}
 	}
 
-	// Return the completed syllable!
+	// Return the word with the completed syllable!
 	return word;
 }
 
 // Choose a syllable pattern from the appropriate collection of syllables.
-function syllPatternPick(which, slowSylDrop) {
+function syllPatternPick(syllableBoxChoice) {
 	var numberOfSyllables, syllables;
-	switch (which) {
+	switch (syllableBoxChoice) {
 		case -1:
 			// First syllable
 			syllables = $WG.wordInitSyls;
@@ -239,31 +250,27 @@ function syllPatternPick(which, slowSylDrop) {
 	// Save this for speed.
 	numberOfSyllables = syllables.length;
 	// Use powerLaw() and calcDropoff() to determine which syllable in the collection to pick.
-	return syllables[powerLaw(numberOfSyllables, calcDropoff(numberOfSyllables, slowSylDrop))];
+	return syllables[powerLaw(numberOfSyllables, calcDropoff(numberOfSyllables))];
 }
 
 // Output a single word
-function getOneWord(
-	capitalize,
-	monoRate,
-	oneType,
-	showSyls,
-	dropoff,
-	slowSylDrop
-) {
+function getOneWord(capitalize) {
 	var numberOfSyllables = 1,
 		currentSyllable,
-		whichBox,
+		syllableBoxChoice,
+		monoRate = $WG.monoRate,
+		oneType = $WG.oneType,
 		word = "";
 	// Determine if we're making a one-syllable word.
-	if (Math.random() > monoRate) {
+	if ((Math.random() * 101) >= monoRate) {
 		// We've got word with 2-6 syllables.
 		numberOfSyllables += 1 + powerLaw(4, 50);
 	}
 	// Check if we're a monosyllable word.
 	if (numberOfSyllables === 1) {
-		word = oneSyllable("", oneType ? -1 : 2, dropoff, slowSylDrop);
+		word = oneSyllable("", oneType ? -1 : 2);
 	} else {
+		let showSyls = $WG.showSyls;
 		// We're a polysyllabic word.
 		for (
 			currentSyllable = 1;
@@ -272,18 +279,18 @@ function getOneWord(
 		) {
 			if (oneType || currentSyllable === 1) {
 				// Either one syllable box only, or we're in the first syllable.
-				whichBox = -1;
+				syllableBoxChoice = -1;
 			} else if (currentSyllable > 1) {
 				// Not the first syllable...
 				if (currentSyllable < numberOfSyllables) {
 					// Not final syllable.
-					whichBox = 0;
+					syllableBoxChoice = 0;
 				} else {
 					// Final syllable.
-					whichBox = 1;
+					syllableBoxChoice = 1;
 				}
 			}
-			word = oneSyllable(word, whichBox, dropoff, slowSylDrop);
+			word = oneSyllable(word, syllableBoxChoice);
 			// Add syllable-separator mark (if we're between syllables and if it's asked for).
 			if (showSyls && currentSyllable < numberOfSyllables) {
 				word += "\u00b7";
@@ -302,27 +309,22 @@ function getOneWord(
 }
 
 // Output a pseudo-text.
-function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
-	var sent,
-		wordsCollected,
-		nWord,
-		output = "",
-		nSentences = getAdvancedNumber($i("sentences"), 30, 500);
+function createText() {
+	var output = "",
+		numberOfSentences = getAdvancedNumber($i("sentences"), 30, 500),
+		sentencesSoFar,
+		wordsSoFar,
+		numberOfWords;
 	// Go through the info for every sentence.
-	for (sent = 0; sent < nSentences; sent++) {
-		nWord = peakedPowerLaw(15, 5, 50);
+	for (sentencesSoFar = 0; sentencesSoFar < numberOfSentences; sentencesSoFar++) {
+		numberOfWords = peakedPowerLaw(15, 5, 50);
 		// Add each word one at a time.
-		for (wordsCollected = 0; wordsCollected <= nWord; wordsCollected++) {
+		for (wordsSoFar = 0; wordsSoFar <= numberOfWords; wordsSoFar++) {
 			output += getOneWord(
-				wordsCollected === 0, // Capitalization flag
-				monoRate,
-				oneType,
-				showSyls,
-				dropoff,
-				slowSylDrop
+				wordsSoFar === 0, // Capitalization flag
 			);
 			// If we're the last word, add punctuation.
-			if (wordsCollected === nWord) {
+			if (wordsSoFar === numberOfWords) {
 				output += ".....?!".charAt(Math.floor(Math.random() * 7));
 			}
 			output += " ";
@@ -331,19 +333,12 @@ function createText(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
 	return $t(output);
 }
 
-// Create a list of nLexTotal words
-function createLex(
-	capitalize,
-	monoRate,
-	oneType,
-	showSyls,
-	dropoff,
-	slowSylDrop
-) {
-	var wordsCollected,
-		output = $e("div"),
-		nLexTotal = getAdvancedNumber($i("lexiconLength"), 150, 1000),
-		words = [];
+// Create a list of words
+function createLex(capitalize) {
+	var output = $e("div"),
+		numberOfWordsInLexicon = getAdvancedNumber($i("lexiconLength"), 150, 1000),
+		words = [],
+		wordsSoFar;
 	// Set up class.
 	output.classList.add("lexicon");
 	// Set up grid style.
@@ -352,10 +347,8 @@ function createLex(
 		getAdvancedNumber($i("wordLengthInEms"), 10, 1000).toString() +
 		"em, 1fr) )";
 	// Add words up to the limit.
-	for (wordsCollected = 0; wordsCollected < nLexTotal; wordsCollected++) {
-		words.push(
-			getOneWord(capitalize, monoRate, oneType, showSyls, dropoff, slowSylDrop)
-		);
+	for (wordsSoFar = 0; wordsSoFar < numberOfWordsInLexicon; wordsSoFar++) {
+		words.push(getOneWord(capitalize));
 	}
 	// Alphabetize.
 	words.sort();
@@ -366,17 +359,14 @@ function createLex(
 	return output;
 }
 
-// Create a list of nLexTotal * 5 words
-function createLongLex(monoRate, oneType, showSyls, dropoff, slowSylDrop) {
-	var wordsCollected,
-		output = $f(),
-		nLexTotal = getAdvancedNumber($i("largeLexiconLength"), 750, 5000);
+// Create a list of many words, 5x as much as the lexicon above
+function createLongLex() {
+	var output = $f(),
+		numberOfWordsInLexicon = getAdvancedNumber($i("largeLexiconLength"), 750, 5000),
+		wordsSoFar;
 	// Add words up to the limit, followed by a BR each time.
-	for (wordsCollected = 0; wordsCollected < nLexTotal; wordsCollected++) {
-		output.append(
-			getOneWord(false, monoRate, oneType, showSyls, dropoff, slowSylDrop),
-			$e("br")
-		);
+	for (wordsSoFar = 0; wordsSoFar < numberOfWordsInLexicon; wordsSoFar++) {
+		output.append(getOneWord(false), $e("br"));
 	}
 	return output;
 }
@@ -409,7 +399,7 @@ function getEverySyllable() {
 	// Go through each syllable one at a time.
 	syllables.forEach(function(unit) {
 		// Go through each category one at a time.
-		recurseCategories(setUp, "", unit.split(""));
+		recurseCategoriesForSyllables(setUp, "", unit.split(""));
 	});
 	// Translate the set into an array.
 	output = [...setUp];
@@ -423,7 +413,7 @@ function getEverySyllable() {
 }
 
 // Go through categories recursively, adding finished words to the given Set.
-function recurseCategories(givenSet, input, toGo) {
+function recurseCategoriesForSyllables(givenSet, input, toGo) {
 	var next = toGo.slice(0),
 		now;
 	// Find new category.
@@ -437,13 +427,13 @@ function recurseCategories(givenSet, input, toGo) {
 			givenSet.add(applyRewriteRules(input));
 		} else {
 			// Continue the recursion.
-			recurseCategories(givenSet, input, next);
+			recurseCategoriesForSyllables(givenSet, input, next);
 		}
 	} else if (next.length > 0) {
 		// Category exists. More to come.
 		now.split("").forEach(function(char) {
 			// Recurse deeper.
-			recurseCategories(givenSet, input + char, next);
+			recurseCategoriesForSyllables(givenSet, input + char, next);
 		});
 	} else {
 		// Category exists. Final category.
@@ -455,41 +445,38 @@ function recurseCategories(givenSet, input, toGo) {
 	}
 }
 
-// A quick way to escape HTML characters by turning it into a text node and back again.
-function escapeHTML(html) {
-	return $e("p", html).innerHTML;
-}
 
 // User hit the action button.  Make things happen!
 function generate() {
-	var whichWay,
+	var errorMessages = [],
+		catt = $WG.categories,
+		whichWay,
 		input,
 		splitter,
 		frag,
 		output,
-		errorMessages = [],
-		catt = $WG.categories,
-		showSyls,
-		slowSylDrop,
 		oneType,
 		monoRate,
 		dropoff;
 	// Read parameters.
 	whichWay = $q("input[type=radio][name=outType]:checked").value; // What output are we aiming for?
-	showSyls = $i("showSyls").checked; // Do we show syllable breaks?
-	slowSylDrop = $i("slowSylDrop").checked; // Do we (somewhat) flatten out the syllable dropoff?
+	$WG.showSyls = $i("showSyls").checked; // Do we show syllable breaks?
+	$WG.slowSylDrop = $i("slowSylDrop").checked; // Do we (somewhat) flatten out the syllable dropoff?
 	oneType = $i("oneType").checked; // Are we only using one syllable box?
+	$WG.oneType = oneType;
 	monoRate = Number($q("input[type=radio][name=monoRate]:checked").value); // The rate of monosyllable words.
 	dropoff = Number($q("input[type=radio][name=dropoff]:checked").value); // How fast do the category runs flatten out?
 
 	// Validate monosyllable selector.
-	// If monoRate isn't set or is bigger than 1.0 (neither should be possible), change it to 1.0.
-	// If monoRate is less than 0.0 (shouldn't be possible), change it to 0.0.
-	monoRate = Math.min(Math.max(monoRate, 0.0), 1.0);
+	// If monoRate isn't set or is bigger than 100 (neither should be possible), change it to 100.
+	// If monoRate is less than 0 (shouldn't be possible), change it to 0.
+	monoRate = Math.min(Math.max(monoRate, 0), 100);
 	if (monoRate !== monoRate) {
 		// (NaN !== NaN is always true)
-		monoRate = 1.0;
+		monoRate = 100;
 	}
+	// Save to global
+	$WG.monoRate = monoRate;
 
 	// Validate dropoff selector.
 	// If dropoff isn't set or is bigger than 45 (neither should be possible), change it to 45.
@@ -499,6 +486,8 @@ function generate() {
 		// (NaN !== NaN is always true)
 		dropoff = 45;
 	}
+	// Save to global
+	$WG.dropoff = dropoff;
 
 	// Parse all those boxes for validness.
 
@@ -615,36 +604,16 @@ function generate() {
 		// Actually generate text.
 		switch (whichWay) {
 			case "text": // pseudo-text
-				output = createText(monoRate, oneType, showSyls, dropoff, slowSylDrop);
+				output = createText();
 				break;
 			case "dict": // lexicon
-				output = createLex(
-					false,
-					monoRate,
-					oneType,
-					showSyls,
-					dropoff,
-					slowSylDrop
-				);
+				output = createLex(false);
 				break;
 			case "dictC": // capitalized lexicon
-				output = createLex(
-					true,
-					monoRate,
-					oneType,
-					showSyls,
-					dropoff,
-					slowSylDrop
-				);
+				output = createLex(true);
 				break;
 			case "longdict": // large lexicon
-				output = createLongLex(
-					monoRate,
-					oneType,
-					showSyls,
-					dropoff,
-					slowSylDrop
-				);
+				output = createLongLex();
 				break;
 			case "genall": // all possible syllables
 				output = getEverySyllable();
@@ -652,7 +621,7 @@ function generate() {
 	}
 
 	// Set the output field.
-	erase();
+	eraseOutputFromScreen();
 	$i("outputText").appendChild(output);
 }
 
@@ -796,13 +765,13 @@ function parseRewriteRules(rules) {
 }
 
 // Calculate syllable dropoff percentage rate, based on the maximum number of candidates.
-function calcDropoff(lengthOfCandidates, slowSylDrop) {
+function calcDropoff(lengthOfCandidates) {
 	if (lengthOfCandidates === 1) {
 		// Only one candidate? It's auto-chosen.
 		return 101;
 	}
 	// If we're slowing down the rate (making it less likely an earlier candidate is chosen), return a smaller value.
-	if (slowSylDrop) {
+	if ($WG.slowSylDrop) {
 		switch (lengthOfCandidates) {
 			case 2:
 				return 50;
@@ -826,7 +795,7 @@ function calcDropoff(lengthOfCandidates, slowSylDrop) {
 }
 
 // Simple function erases all output from the screen.
-function erase() {
+function eraseOutputFromScreen() {
 	var out = $i("outputText");
 	while (out.firstChild) {
 		out.removeChild(out.firstChild);
@@ -1189,7 +1158,7 @@ function clearCustom(test) {
 // Display the IPA and other stuff.
 function showIPA() {
 	// Relevant code moved to unicode.js
-	erase();
+	eraseOutputFromScreen();
 	$i("outputText").appendChild(createIPASymbolsFragment([$e("br"), $e("br")]));
 }
 
@@ -1361,15 +1330,7 @@ function doAlert(title, text, type) {
 		);
 	}
 }
-function doConfirm(
-	title,
-	text,
-	yesFunc,
-	noFunc,
-	type = "question",
-	yes = "Ok",
-	no = "Cancel"
-) {
+function doConfirm(title, text, yesFunc, noFunc, type = "question", yes = "Ok", no = "Cancel") {
 	if (typeof Swal !== "undefined") {
 		// We has it!
 		Swal.fire({
@@ -1384,15 +1345,7 @@ function doConfirm(
 		}).then(result => (result.value ? yesFunc.call() : noFunc.call()));
 	} else {
 		// We don't has it.
-		if (
-			confirm(
-				(
-					title +
-					" " +
-					text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "")
-				).trim()
-			)
-		) {
+		if (confirm((title + " " + text.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "")).trim())) {
 			yesFunc.call();
 		} else {
 			noFunc.call();
