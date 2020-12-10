@@ -3,7 +3,7 @@
 // attribution would be nice.
 // If you want to make money off it, please contact me.
 
-// Modified by Jason Tamez 2017-2019.
+// Modified by Jason Tamez 2017-2020.
 // Code available here: https://github.com/jasontamez/wordgen
 
 var $WG = {
