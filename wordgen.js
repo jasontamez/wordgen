@@ -1304,7 +1304,7 @@ $i("saveCustomButton").addEventListener("click", saveCustom);
 $i("clearCustomButton").addEventListener("click", clearCustom);
 $i("prepImportButton").addEventListener("click", prepImport);
 $i("generateButton").addEventListener("click", generate);
-$i("eraseButton").addEventListener("click", erase);
+$i("eraseButton").addEventListener("click", eraseOutputFromScreen);
 $i("clearBoxesButton").addEventListener("click", clearBoxes);
 $i("showIPAButton").addEventListener("click", showIPA);
 $i("loadPredefButton").addEventListener("click", loadPredef);
