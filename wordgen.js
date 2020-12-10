@@ -7,32 +7,33 @@
 // Code available here: https://github.com/jasontamez/wordgen
 
 var $WG = {
-	categories: null, // Used to interpret the categories
-	midWordSyls: null, // Holds mid-word syllables
-	wordInitSyls: null, // Holds word-initial syllables
-	wordFinalSyls: null, // Holds word-final syllables
-	singleWordSyls: null, // Holds syllables for single-syllable words
-	rew: null, // Holds rewrite rules
-	previous: {
-		categories: null, // Holds previous categories, to save processing
+	categories: null, // Used to interpret the categories // minified: c
+	midWordSyls: null, // Holds mid-word syllables // minified: m
+	wordInitSyls: null, // Holds word-initial syllables // minified: i
+	wordFinalSyls: null, // Holds word-final syllables // minified: f
+	singleWordSyls: null, // Holds syllables for single-syllable words // minified: w
+	rew: null, // Holds rewrite rules // minified: r
+	previous: { // Holds raw info previously processed, so we can check and not re-process it // minified: p
+		categories: null, // Holds previous categories
 		midWordSyls: null,
 		wordInitSyls: null,
 		wordFinalSyls: null,
-		singleWordSyls: null, // These four hold previous syllable boxes, to save processing
-		rew: null // Holds previous rewrite rules, to save processing
+		singleWordSyls: null, // These four hold previous syllable boxes
+		rew: null // Holds previous rewrite rules
 	},
-	rewSep: false, // Separates rewrite selector from replacement
-	CustomInfo: false, // Used by Defaults to check localStorage for saved info
-	Customizable: false, // Used to indicate that saving is possible
-	getter: new XMLHttpRequest(), // Used to download stored predefs
-	predefFilename: "/predefs.txt", // Where they are stored
+	rewSep: false, // Separates rewrite selector from replacement // minified: s
+	CustomInfo: false, // Used by Defaults to check localStorage for saved info // minified: u
+	Customizable: false, // Used to indicate that saving is possible // minified: z
+	getter: new XMLHttpRequest(), // Used to download stored predefs // minified: g
+	predefFilename: "/predefs.txt", // Where they are stored // minified: n
 	predefs: new Map(), // Used to store predefs
-	SPACE: String.fromCharCode(0x00a0), // Non-breaking space for text formatting
-	dropoff: 30, // 0-100 percentage that the first letter in a category gets picked
-	monoRate: 20, // 0-100 percentage that a given word is monosyllabic
-	slowSylDrop: false, // Do we slow the multisyllabic dropoff?
-	showSyls: false, // Do we show syllable breaks?
-	oneType: true // Is there only one type of syllable?
+	//d 
+	SPACE: String.fromCharCode(0x00a0), // Non-breaking space for text formatting // minified: a
+	dropoff: 30, // 0-100 percentage that the first letter in a category gets picked // minified: o
+	monoRate: 20, // 0-100 percentage that a given word is monosyllabic // minified: e
+	slowSylDrop: false, // Do we slow the multisyllabic dropoff? // minified: l
+	showSyls: false, // Do we show syllable breaks? // minified: h
+	oneType: true // Is there only one type of syllable? // minified: t
 };
 
 // Helper functions to streamline some often-used function calls.
