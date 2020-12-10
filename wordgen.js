@@ -6,25 +6,29 @@
 // Modified by Jason Tamez 2017-2019.
 // Code available here: https://github.com/jasontamez/wordgen
 
-var categories, // Used to interpret the categories
-	previousCat = false, // Holds previous categories, to save processing
-	midWordSyls, // Holds mid-word syllables
-	wordInitSyls, // Holds word-initial syllables
-	wordFinalSyls, // Holds word-final syllables
-	singleWordSyls, // Holds syllables for single-syllable words
-	previousMidWordSyls = false,
-	previousWordInitSyls = false,
-	previousWordFinalSyls = false,
-	previousSingleWordSyls = false, // These four hold previous syllable boxes, to save processing
-	rew, // Holds rewrite rules
-	previousRew = false, // Holds previous rewrite rules, to save processing
-	rewSep = false, // Separates rewrite selector from replacement
-	CustomInfo = false, // Used by Defaults to check localStorage for saved info
-	Customizable = false, // Used to indicate that saving is possible
-	getter = new XMLHttpRequest(), // Used to download stored predefs
-	predefFilename = "/predefs.txt", // Where they are stored
-	predefs = new Map(), // Used to store predefs
-	SPACE = String.fromCharCode(0x00a0); // Non-breaking space for text formatting.
+var $WG = {
+	categories: null, // Used to interpret the categories
+	midWordSyls: null, // Holds mid-word syllables
+	wordInitSyls: null, // Holds word-initial syllables
+	wordFinalSyls: null, // Holds word-final syllables
+	singleWordSyls: null, // Holds syllables for single-syllable words
+	rew: null, // Holds rewrite rules
+	previous: {
+		categories: null, // Holds previous categories, to save processing
+		midWordSyls: null,
+		wordInitSyls: null,
+		wordFinalSyls: null,
+		singleWordSyls: null, // These four hold previous syllable boxes, to save processing
+		rew: null // Holds previous rewrite rules, to save processing
+	},
+	rewSep: false, // Separates rewrite selector from replacement
+	CustomInfo: false, // Used by Defaults to check localStorage for saved info
+	Customizable: false, // Used to indicate that saving is possible
+	getter: new XMLHttpRequest(), // Used to download stored predefs
+	predefFilename: "/predefs.txt", // Where they are stored
+	predefs: new Map(), // Used to store predefs
+	SPACE: String.fromCharCode(0x00a0) // Non-breaking space for text formatting
+};
 
 // Helper functions to streamline some often-used function calls.
 function $i(x, doc = document) {
@@ -74,8 +78,8 @@ function handleCategoriesInRewriteRule(rule) {
 	// Split along those, then join with % at end.
 	var broken = rule.split("%%"),
 		rewritten = [],
+		catt = $WG.categories,
 		testing,
-		catt,
 		chunk,
 		bit;
 	while (broken.length) {
@@ -89,7 +93,7 @@ function handleCategoriesInRewriteRule(rule) {
 			let testCat;
 			bit = testing.shift();
 			// What's the category being negated?
-			testCat = categories.get(bit.charAt(0));
+			testCat = catt.get(bit.charAt(0));
 			// Is it actually a category?
 			if (test !== undefined) {
 				// Category found. Replace with [^a-z] construct, where a-z is the category contents.
@@ -109,7 +113,7 @@ function handleCategoriesInRewriteRule(rule) {
 			let testCat;
 			bit = testing.shift();
 			// What's the category?
-			testCat = categories.get(bit.charAt(0));
+			testCat = catt.get(bit.charAt(0));
 			// Is it actually a category?
 			if (testCat !== undefined) {
 				// Category found. Replace with [a-z] construct, where a-z is the category contents.
@@ -132,12 +136,12 @@ function applyRewriteRules(input) {
 	//// Go through each rule one by one.
 	//for (counter = 0; counter < nrew; counter++) {
 	//	// Grab the rule and replacement.
-	//	parse = rew[counter.toString()];
+	//	parse = $WG.rew[counter.toString()];
 	//	// Apply the rule to the input with the replacement.
 	//	input = input.replace(parse[0], parse[1]);
 	//}
 	// Go through each rule one by one.
-	rew.forEach(function(repl, rx) {
+	$WG.rew.forEach(function(repl, rx) {
 		// Apply the rule to the input with the replacement.
 		input = input.replace(rx, repl);
 	});
@@ -181,6 +185,7 @@ function peakedPowerLaw(max, mode, pct) {
 function oneSyllable(word, which, dropoff, slowSylDrop) {
 	// Choose the pattern
 	var pattern = syllPatternPick(which, slowSylDrop),
+		catt = $WG.categories,
 		counter,
 		theCat,
 		randomNum,
@@ -189,7 +194,7 @@ function oneSyllable(word, which, dropoff, slowSylDrop) {
 	// For each letter in the pattern, find the category
 	for (counter = 0; counter < pattern.length; counter++) {
 		pattFound = pattern.charAt(counter);
-		theCat = categories.get(pattFound);
+		theCat = catt.get(pattFound);
 		// Go find it in the categories list
 		if (theCat === undefined) {
 			// Not found: output syllable directly
@@ -216,19 +221,19 @@ function syllPatternPick(which, slowSylDrop) {
 	switch (which) {
 		case -1:
 			// First syllable
-			syllables = wordInitSyls;
+			syllables = $WG.wordInitSyls;
 			break;
 		case 0:
 			// Middle syllable
-			syllables = midWordSyls;
+			syllables = $WG.midWordSyls;
 			break;
 		case 1:
 			// Last syllable
-			syllables = wordFinalSyls;
+			syllables = $WG.wordFinalSyls;
 			break;
 		case 2:
 			// Only syllable
-			syllables = singleWordSyls;
+			syllables = $WG.singleWordSyls;
 			break;
 	}
 	// Save this for speed.
@@ -399,7 +404,7 @@ function getEverySyllable() {
 		output;
 	// Make a Set out of all syllables.
 	const syllables = new Set(
-		midWordSyls.concat(wordInitSyls, wordFinalSyls, singleWordSyls)
+		$WG.midWordSyls.concat($WG.wordInitSyls, $WG.wordFinalSyls, $WG.singleWordSyls)
 	);
 	// Go through each syllable one at a time.
 	syllables.forEach(function(unit) {
@@ -422,7 +427,7 @@ function recurseCategories(givenSet, input, toGo) {
 	var next = toGo.slice(0),
 		now;
 	// Find new category.
-	now = categories.get(next.shift());
+	now = $WG.categories.get(next.shift());
 	// Check to see if the category exists.
 	if (now === undefined) {
 		// It doesn't exist. Not a category. Save directly into input.
@@ -463,6 +468,7 @@ function generate() {
 		frag,
 		output,
 		errorMessages = [],
+		catt = $WG.categories,
 		showSyls,
 		slowSylDrop,
 		oneType,
@@ -499,96 +505,99 @@ function generate() {
 	// Grab the category list.
 	input = $i("categories").value;
 	// If the categories have changed, parse them.
-	if (input !== previousCat) {
+	if (input !== $WG.previous.categories) {
 		let testing = parseCategories(input);
 		// If we found no errors, save the categories.
 		if (testing.flag && testing.cats.size > 0) {
-			previousCat = input;
-			categories = testing.cats;
+			$WG.previous.categories = input;
+			$WG.categories = testing.cats;
+			catt = testing.cats;
 		} else {
 			errorMessages.push(...testing.msgs);
+			catt = false;
 		}
 	}
 
 	// Parse the syllable lists.
 	// Check each one to see if it's changed, first.
 	input = $i("midWord").value;
-	if (input !== previousMidWordSyls) {
-		midWordSyls = parseSyllables(input);
-		previousMidWordSyls = input;
+	if (input !== $WG.previous.midWordSyls) {
+		$WG.midWordSyls = parseSyllables(input);
+		$WG.previous.midWordSyls = input;
 	}
 
 	input = $i("wordInitial").value;
-	if (input !== previousWordInitSyls) {
-		wordInitSyls = parseSyllables(input);
-		previousWordInitSyls = input;
+	if (input !== $WG.previous.wordInitSyls) {
+		$WG.wordInitSyls = parseSyllables(input);
+		$WG.previous.wordInitSyls = input;
 	}
 
 	input = $i("wordFinal").value;
-	if (input !== previousWordFinalSyls) {
-		wordFinalSyls = parseSyllables(input);
-		previousWordFinalSyls = input;
+	if (input !== $WG.previous.wordFinalSyls) {
+		$WG.wordFinalSyls = parseSyllables(input);
+		$WG.previous.wordFinalSyls = input;
 	}
 
 	input = $i("singleWord").value;
-	if (input !== previousSingleWordSyls) {
-		singleWordSyls = parseSyllables(input);
-		previousSingleWordSyls = input;
-	}
-
-	// Grab the rewrite rules.
-	input = $i("rewrite").value;
-	// Find the splitter. (|| by default)
-	splitter = $i("rewSep").value;
-	// If the rules have changed, parse them.
-	if (previousRew !== input || splitter !== rewSep) {
-		let testing;
-		// Save the separator
-		rewSep = splitter;
-		// Run through the rules.
-		testing = parseRewriteRules(input);
-		// If we found no errors, save the rules.
-		if (testing.flag) {
-			previousRew = input;
-			//// nrew === 0 is ok: sometimes you don't need to rewrite anything.
-			//nrew = testing.len;
-			rew = testing.rules;
-		} else {
-			errorMessages.push(...testing.msgs);
-		}
+	if (input !== $WG.previous.singleWordSyls) {
+		$WG.singleWordSyls = parseSyllables(input);
+		$WG.previous.singleWordSyls = input;
 	}
 
 	// Check that categories exist.
-	if (categories.size <= 0) {
+	if (!catt || catt.size <= 0) {
 		frag = $f();
 		frag.append(
 			$e("strong", "Missing:"),
-			SPACE + "You must have categories to generate text."
+			$WG.SPACE + "You must have categories to generate text."
 		);
 		errorMessages.push(frag);
+	} else if (catt) {
+		// Don't bother with rewrite rules if we don't have categories. Errors can result.
+		// Grab the rewrite rules.
+		input = $i("rewrite").value;
+		// Find the splitter. (|| by default)
+		splitter = $i("rewSep").value;
+		// If the rules have changed, parse them.
+		if ($WG.previous.rew !== input || splitter !== $WG.rewSep) {
+			let testing;
+			// Save the separator
+			$WG.rewSep = splitter;
+			// Run through the rules.
+			testing = parseRewriteRules(input);
+			// If we found no errors, save the rules.
+			if (testing.flag) {
+				$WG.previous.rew = input;
+				//// nrew === 0 is ok: sometimes you don't need to rewrite anything.
+				//nrew = testing.len;
+				$WG.rew = testing.rules;
+			} else {
+				errorMessages.push(...testing.msgs);
+			}
+		}
 	}
 
 	// Check that syllables exist.
-	if (oneType && wordInitSyls.length <= 0) {
+	if (oneType && $WG.wordInitSyls.length <= 0) {
 		frag = $f();
 		frag.append(
 			$e("strong", "Missing:"),
-			SPACE + "You must have syllable types to generate text."
+			$WG.SPACE + "You must have syllable types to generate text."
 		);
 		errorMessages.push(frag);
 	} else if (
 		!oneType &&
-		(midWordSyls.length <= 0 ||
-			wordInitSyls.length <= 0 ||
-			wordFinalSyls.length <= 0 ||
-			singleWordSyls.length <= 0)
+		($WG.midWordSyls.length <= 0 ||
+			$WG.wordInitSyls.length <= 0 ||
+			$WG.wordFinalSyls.length <= 0 ||
+			$WG.singleWordSyls.length <= 0)
 	) {
 		frag = $f();
 		frag.append(
 			$e("strong", "Missing:"),
-			SPACE + "You must have" + SPACE,
+			$WG.SPACE + "You must have" + $WG.SPACE,
 			$e("em", "all"),
-			SPACE + "syllable types to generate text."
+			$WG.SPACE + "syllable types to generate text."
 		);
 		errorMessages.push(frag);
 	}
@@ -678,7 +687,7 @@ function parseCategories(testcats) {
 				let frag = $f();
 				frag.append(
 					$e("strong", "Error:"),
-					SPACE + thiscat,
+					$WG.SPACE + thiscat,
 					$e("br"),
 					"Categories must be of the form V=aeiou",
 					$e("br"),
@@ -695,7 +704,7 @@ function parseCategories(testcats) {
 					let frag = $f();
 					frag.append(
 						$e("strong", "Error:"),
-						SPACE + "You have defined category " + thiscat + " more than once."
+						$WG.SPACE + "You have defined category " + thiscat + " more than once."
 					);
 					msgs.push(frag);
 					return false;
@@ -730,6 +739,8 @@ function parseRewriteRules(rules) {
 		newrules = new Map(),
 		// Set up an array for error messages.
 		msgs = [],
+		// Separator for rewrite rules
+		rewSep = $WG.rewSep,
 		// Go through each rule one at a time.
 		tester = potentials.every(function(rule) {
 			// Make sure each rule has two parts.
@@ -744,7 +755,7 @@ function parseRewriteRules(rules) {
 				let frag = $f();
 				frag.append(
 					$e("strong", "Error:"),
-					SPACE + rule,
+					$WG.SPACE + rule,
 					$e("br"),
 					"Rewrite rules must be in the form x" + rewSep + "y",
 					$e("br"),
@@ -1052,14 +1063,14 @@ function doExport(display = true) {
 // Save current info to the browser, if possible.
 function saveCustom(test) {
 	var predef = $i("predef");
-	if (!Customizable) {
+	if (!$WG.Customizable) {
 		doAlert(
 			"",
 			"Your browser does not support Local Storage and cannot save your information.",
 			"error"
 		);
 		return;
-	} else if (CustomInfo && test !== true) {
+	} else if ($WG.CustomInfo && test !== true) {
 		return doConfirm(
 			"Warning!",
 			"You already have information saved. Do you want to overwrite it?",
@@ -1102,7 +1113,7 @@ function saveCustom(test) {
 	);
 	localStorage.setItem("CustomSentences", $i("sentences").value);
 	localStorage.setItem("CustomRewSep", $i("rewSep").value);
-	CustomInfo = true;
+	$WG.CustomInfo = true;
 
 	// Check for the "Custom" predef option and add it if needed.
 	if ($q('option[value="pd-1"]', predef) == null) {
@@ -1114,24 +1125,24 @@ function saveCustom(test) {
 	// Set predef drop-down to Custom.
 	predef.value = "pd-1";
 	// Save predef info.
-	predefs.set("pd-1", doExport(false));
+	$WG.predefs.set("pd-1", doExport(false));
 	// Alert success.
 	doAlert("Saved to browser.", "", "success");
 }
 
 // Remove stored information from the browser.
 function clearCustom(test) {
-	if (!Customizable) {
+	if (!$WG.Customizable) {
 		doAlert(
 			"Sorry!",
 			"Your browser does not support Local Storage and cannot save your information.",
 			"error"
 		);
 		return;
-	} else if (!CustomInfo) {
+	} else if (!$WG.CustomInfo) {
 		doAlert("", "You don't have anything saved.", "error");
 		return;
-	} else if (CustomInfo && test !== true) {
+	} else if ($WG.CustomInfo && test !== true) {
 		return doConfirm(
 			"Warning!",
 			"Are you sure you want to delete your saved settings?",
@@ -1166,11 +1177,11 @@ function clearCustom(test) {
 	].forEach(function(x) {
 		window.localStorage.removeItem(x);
 	});
-	CustomInfo = false;
+	$WG.CustomInfo = false;
 	// Remove "Custom" from drop-down menu.
 	$q('#predef option[value="-1"]').remove();
 	// Remove info.
-	predefs.delete("pd-1");
+	$WG.predefs.delete("pd-1");
 	// Alert success.
 	doAlert("Cleared from browser.", "", "success");
 }
@@ -1191,25 +1202,25 @@ function advancedOptions() {
 function loadPredef() {
 	var pd = $i("predef").value;
 	console.log("Opening predef [" + pd + "]");
-	doImport(predefs.get(pd), false, false);
+	doImport($WG.predefs.get(pd), false, false);
 	syllabicChangeDetection();
 }
 
 // Load predefs from file.
-getter.addEventListener("load", parseResult);
-getter.open("GET", predefFilename);
-getter.send();
+$WG.getter.addEventListener("load", parseResult);
+$WG.getter.open("GET", $WG.predefFilename);
+$WG.getter.send();
 $i("loadPredefButton").disabled = true;
 $i("predef").disabled = true;
 // Save default info as "Starter"
-predefs.set("pd1", doExport(null));
+$WG.predefs.set("pd1", doExport(null));
 
 // Called async when predefs are being loaded
 function parseResult() {
-	//console.log(getter);
+	//console.log($WG.getter);
 	// Grab info.
-	var loaded = getter.responseText.trim().split(/\n--END--/),
-		counter = predefs.size + (predefs.get("pd-1") === undefined ? 0 : -1);
+	var loaded = $WG.getter.responseText.trim().split(/\n--END--/),
+		counter = $WG.predefs.size + ($WG.predefs.get("pd-1") === undefined ? 0 : -1);
 	// Store info.
 	loaded.forEach(function(p) {
 		// Info should start with a Name and a linebreak.
@@ -1237,7 +1248,7 @@ function parseResult() {
 				counter++;
 				val += counter.toString();
 				// Save info internally.
-				predefs.set(val, info);
+				$WG.predefs.set(val, info);
 				// Set properties of <option>
 				opt.textContent = name;
 				opt.value = val;
@@ -1273,10 +1284,10 @@ function syllabicChangeDetection() {
 // Check for localStorage.
 if (typeof Storage !== "undefined") {
 	// Make this known to other functions.
-	Customizable = true;
+	$WG.Customizable = true;
 	// Check if we have info stored. If so, load it up.
 	if (localStorage.getItem("CustomCategories") !== null) {
-		CustomInfo = true;
+		$WG.CustomInfo = true;
 		// Set drop-down menu to the custom info.
 		let option = document.createElement("option"),
 			propTrue = [
@@ -1302,7 +1313,7 @@ if (typeof Storage !== "undefined") {
 		}
 		propTrue.forEach(box => ($i(box).checked = true));
 		propFalse.forEach(box => ($i(box).checked = false));
-		predefs.set("pd-1", doExport(false));
+		$WG.predefs.set("pd-1", doExport(false));
 		option.value = "pd-1";
 		option.textContent = "Custom";
 		$i("predef").prepend(option);
