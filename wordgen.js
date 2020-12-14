@@ -1262,7 +1262,7 @@ function clearCustom(test) {
 	window.localStorage.removeItem("WordGenCustomOption");
 	$WG.customInfo = false;
 	// Remove "Custom" from drop-down menu.
-	$q('#predef option[value="-1"]').remove();
+	$q('#predef option[value="pd-1"]').remove();
 	// Remove info.
 	$WG.predefs.delete("pd-1");
 	// Alert success.
@@ -1330,11 +1330,10 @@ function parsePredefsFromFile() {
 		target = $i("predef"),
 		// opt is a new <option> we're adding to it
 		opt = document.createElement("option"),
-		val = "pd";
-		console.log("Saving predef: " + nombre);
 		// Increase counter, generate a unique name.
 		counter++;
-		val += counter.toString();
+		val = "pd" + counter.toString();
+		console.log("Saving predef: " + nombre + " as [" + val + "]");
 		// Save info internally.
 		predefs.set(val, p);
 		// Set properties of <option>
