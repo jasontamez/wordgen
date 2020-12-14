@@ -114,11 +114,11 @@ CRV</textarea>
 	<div id="p_monoRate">Monosyllables:<span class="help">?<span class="info">This choice determines how often
 			single-syllable words are generated, from <em>Rare</em> producing very few, to <em>Always</em> giving nothing
 			but.</span></span>
-		<br><label><input type ="radio" name="monoRate" id="monoAlways"       value="1.00">Always</label>
-		<br><label><input type ="radio" name="monoRate" id="monoMostly"       value="0.85">Mostly</label>
-		<br><label><input type ="radio" name="monoRate" id="monoFrequent"     value="0.50">Frequent</label>
-		<br><label><input type ="radio" name="monoRate" id="monoLessFrequent" value="0.20" checked>Less frequent</label>
-		<br><label><input type ="radio" name="monoRate" id="monoRare"         value="0.07">Rare</label>
+		<br><label><input type ="radio" name="monoRate" id="monoAlways"       value="100">Always</label>
+		<br><label><input type ="radio" name="monoRate" id="monoMostly"       value="85" >Mostly</label>
+		<br><label><input type ="radio" name="monoRate" id="monoFrequent"     value="50" >Frequent</label>
+		<br><label><input type ="radio" name="monoRate" id="monoLessFrequent" value="20" checked>Less frequent</label>
+		<br><label><input type ="radio" name="monoRate" id="monoRare"         value="7"  >Rare</label>
 	</div>
 	<div id="p_showSyls"><label><input type="checkbox" name="showSyls" id="showSyls">Show
 			syllables</label><span class="help">?<span class="info">If checked, syllable boundaries will be marked
@@ -158,28 +158,98 @@ CRV</textarea>
 				Settings</strong> to reload it at a later date.</span></span>
 			</div>
 		</div>
-		<div>
-			<div><strong>Wordlist spacing:</strong><br><input type="number" value="10" min="0" max="1000" id="wordLengthInEms">em<span class="help popOut">?<span class="info">
-				When using a Wordlist as an <strong>Output type</strong>, this determines how much space each word will take
-				up. Modify this if the words you're generating are larger (or much smaller) than the space the Wordlist is
-				giving you. Maximum 1000.</span></span>
-			</div>
-			<div><strong>Wordlist size:</strong><br><input type="number" value="150" min="1" max="1000" id="lexiconLength">
-				words<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output
-				Type</strong>, it will output this many words. Maximum 1000.</span></span>
-			</div>
-			<div><strong>Giant List size:</strong><br><input type="number" value="750" min="1" max="5000" id="largeLexiconLength">
-				words<span class="help popOut">?<span class="info">When you use Giant List as an <strong>Output
-				Type</strong>, it will output this many words. Maximum 5000.</span></span>
-			</div>
-			<div><strong>Pseudo-text size:</strong><br><input type="number" value="30" min="1" max="500" id="sentences">
+		<div class="nonButtonGroup">
+			<div><strong>Text Output size:</strong>
+				<br>
+				<input type="number" value="30" min="1" max="500" id="sentences">
 				sentences<span class="help popOut">?<span class="info">When you use Text output as your <strong>Output
 				Type</strong>, it will output this many sentences. (Sentences are between 1 and 15 words long, strongly
 				favoring the middle of that range. 500 sentences maximum.)</span></span>
 			</div>
-			<div><strong>Rewrite separator:</strong><br><input type="text" value="||" id="rewSep"><span class="help popOut">?<span class="info">
+			<div><strong>Wordlist spacing:</strong>
+				<br>
+				<input type="number" value="10" min="0" max="1000" id="wordLengthInEms">em<span class="help popOut">?<span class="info">
+				When using a Wordlist as an <strong>Output type</strong>, this determines how much space each word will take
+				up. Modify this if the words you're generating are larger (or much smaller) than the space the Wordlist is
+				giving you. Maximum 1000.</span></span>
+			</div>
+			<div><strong>Wordlist size:</strong>
+				<br>
+				<input type="number" value="150" min="1" max="1000" id="lexiconLength"> 
+				words<span class="help popOut">?<span class="info">When you use a Wordlist as an <strong>Output
+				Type</strong>, it will output this many words. Maximum 1000.</span></span>
+			</div>
+			<div><strong>Giant List size:</strong>
+				<br>
+				<input type="number" value="750" min="1" max="5000" id="largeLexiconLength">
+				words<span class="help popOut">?<span class="info">When you use Giant List as an <strong>Output
+				Type</strong>, it will output this many words. Maximum 5000.</span></span>
+			</div>
+			<div><strong>Rewrite separator:</strong>
+				<br>
+				<input type="text" value="||" id="rewSep"><span class="help popOut">?<span class="info">
 				Defines the plain text that separates the search expression from the replacement expression in
 				<strong>Rewrite Rules</strong></span></span>
+			</div>
+			<div><strong>Dropoff override:</strong>
+				<br>
+				<input type="number" value="0" min="0" max="99" id="dropoffOverride"><span class="help popOut">?<span class="info">
+				Overrides the <strong>Dropoff</strong> setting with a percentage of your choosing. This is a percent
+				chance that any given letter will be chosen from a given <string>category</string>. The higher the
+				number, the more likely that a letter at the start of the category will be picked. Leave as 0 to use
+				the <strong>Dropoff</strong> preset.</span></span>
+			</div>
+			<div><strong>Monosyllables override:</strong>
+				<br>
+				<input type="number" value="0" min="0" max="99" id="monoRateOverride"><span class="help popOut">?<span class="info">
+				Overrides the <strong>Monosyllables</strong> setting with a percentage of your choosing. This is a
+				percent chance that any given word will have only one syllable. Leave as 0 to use the
+				<strong>Monosyllables</strong> preset.</span></span>
+			</div>
+			<div><strong>Syllable dropoff override:</strong>
+				<br>
+				<input type="number" value="0" min="0" max="99" id="slowSylDropOverride"><span class="help popOut">?<span class="info">
+				Overrides the <strong>Slow syllable dropoff</strong> checkbox with a percentage of your choosing that
+				will apply whether the box is checked or not. This is a percent chance that any given syllable pattern
+				will be chosen from a given <string>Syllables</string> box. The higher the number, the more likely that
+				a pattern at the top of the box will be picked. Leave as 0 to use the presets.</span></span>
+			</div>
+			<div><strong>Inline dropoff overrides:</strong>
+				<br>
+				Enable: <input type="checkbox" id="inlineDropoffOverride">
+				<br>
+				<input type="text" value=">" id="inlineDropoffOverrideCue">
+				<input type="text" value="," id="inlineDropoffOverrideSep"><span class="help popOut">?<span class="info">
+				When enabled, defines a method for providing inline dropoff rates for <strong>Categories</strong> and
+				<strong>Syllable</strong> boxes, overriding any other settings.
+				<br><br>
+				The first input will contain text that marks where the override begins. The second input is used only by
+				the <strong>Categories</strong> section, and will contains text that separates the <em>run</em> from the
+				override values. A defined <em>category</em> or <em>syllable</em> box can have this extra info appended
+				to each line inside it.
+				<br><br>
+				The following examples assume the first input is ">" and the second is ",".
+				<br><br>
+				<em class="two">C=qwrt>12,20,15,10</em>
+				<br><br>
+				Whenever the "C" category is used, the 'q' is picked 12% of the
+				time right off the bat. If not, the 'w' has a 20% chance of being picked. If not picked, the 'r' has a
+				15% chance to be picked. Finally, the 't́has a 10% chance of being picked before cycling back to the 'q'
+				again. <em>Note: if there are more letters in the category than percentages, the final percentage will
+				be used for the remaining letters.</em>
+				<br><br>
+				<em class="two">CV>15</em>
+				<br>
+				<em class="two">CVC>10</em>
+				<br>
+				<em class="two">VC>25</em>
+				<br><br>
+				Whenever this syllable box is used, 'CV' will be picked 15% of the time
+				right off the bat. If not, 'CVC' will be picked 10% of the time, then 'VC' has a 25% chance of being
+				chosen, then it cycles back to 'CV' again. If a syllable pattern does not have a percentage assigned
+				to it, the previous percentage will be used. If the first pattern does not have an assignment, it
+				will default to 12%.
+				</span></span>
 			</div>
 		</div>
 	</div>

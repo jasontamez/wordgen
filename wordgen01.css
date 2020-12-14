@@ -91,8 +91,8 @@ select {
 	border-style: solid;
 	outline: none;
 }
-input[type=radio],
-input[type=checkbox] {
+input[type="radio"],
+input[type="checkbox"] {
 	margin-right: 0.5em;
 }
 textarea:focus,
@@ -103,7 +103,7 @@ select:focus {
 input:focus {
 	outline: var(--focus) solid 0.1em;
 }
-input[type=radio]:focus {
+input[type="radio"]:focus {
 	outline: none;
 }
 h2 {
@@ -391,7 +391,7 @@ em.two {
 	text-align: center;
 	max-width: none;
 }
-#advancedOpen.evolve input[type=text] {
+#advancedOpen.evolve input[type="text"] {
 	width: 2em;
 }
 #advancedOpen > div.semiheader {
@@ -412,6 +412,11 @@ em.two {
 	margin: 0 0 0.75em 1em;
 	max-width: 12em;
 }
+#advancedOpen > div.nonButtonGroup > div {
+	text-align: center;
+	background: #fff4;
+	padding: 0 0.5em 0.25em;
+}
 #advancedOpen button {
 	margin: 0;
 	white-space: nowrap;
@@ -422,11 +427,11 @@ em.two {
 #advancedOpen .help {
 	vertical-align: text-top;
 }
-#advancedOpen input {
+#advancedOpen input[type="number"] {
 	width: 4em;
 	text-align: right;
 }
-#advancedOpen input[type=text] {
+#advancedOpen input[type="text"] {
 	width: 5em;
 	text-align: center;
 	font-family: monospace;
@@ -469,9 +474,6 @@ table tr td {
 }
 #importTextBox {
 	margin: 1em auto;
-}
-#importBoxArea .msg.hidden {
-	display: none;
 }
 #importBoxArea .msg {
 	display: inline-block;

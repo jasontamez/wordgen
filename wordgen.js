@@ -7,13 +7,14 @@
 // Code available here: https://github.com/jasontamez/wordgen
 
 var $WG = {
-	categories: null, // Used to interpret the categories // minified: c
-	midWordSyls: null, // Holds mid-word syllables // minified: m
-	wordInitSyls: null, // Holds word-initial syllables // minified: i
-	wordFinalSyls: null, // Holds word-final syllables // minified: f
-	singleWordSyls: null, // Holds syllables for single-syllable words // minified: w
-	rew: null, // Holds rewrite rules // minified: r
-	previous: { // Holds raw info previously processed, so we can check and not re-process it // minified: p
+	categories: null, // Used to interpret the categories
+	midWordSyls: null, // Holds mid-word syllables
+	wordInitSyls: null, // Holds word-initial syllables
+	wordFinalSyls: null, // Holds word-final syllables
+	singleWordSyls: null, // Holds syllables for single-syllable words
+	rew: null, // Holds rewrite rules
+	previous: { // Holds raw info previously processed, so we can check and not re-process it
+		overrides: null, // Checks overrides.total
 		categories: null, // Holds previous categories
 		midWordSyls: null,
 		wordInitSyls: null,
@@ -21,19 +22,37 @@ var $WG = {
 		singleWordSyls: null, // These four hold previous syllable boxes
 		rew: null // Holds previous rewrite rules
 	},
-	rewSep: false, // Separates rewrite selector from replacement // minified: s
-	CustomInfo: false, // Used by Defaults to check localStorage for saved info // minified: u
-	Customizable: false, // Used to indicate that saving is possible // minified: z
-	getter: new XMLHttpRequest(), // Used to download stored predefs // minified: g
-	predefFilename: "/predefs.txt", // Where they are stored // minified: n
+	rewSep: false, // Separates rewrite selector from replacement
+	customInfo: false, // Used by Defaults to check localStorage for saved info
+	customizable: false, // Used to indicate that saving is possible
+	getter: new XMLHttpRequest(), // Used to download stored predefs
+	predefFilename: "/predefs.json", // Where they are stored
 	predefs: new Map(), // Used to store predefs
-	//d 
-	SPACE: String.fromCharCode(0x00a0), // Non-breaking space for text formatting // minified: a
-	dropoff: 30, // 0-100 percentage that the first letter in a category gets picked // minified: o
-	monoRate: 20, // 0-100 percentage that a given word is monosyllabic // minified: e
-	slowSylDrop: false, // Do we slow the multisyllabic dropoff? // minified: l
-	showSyls: false, // Do we show syllable breaks? // minified: h
-	oneType: true // Is there only one type of syllable? // minified: t
+	SPACE: String.fromCharCode(0x00a0), // Non-breaking space for text formatting
+	dropoff: 30, // 0-100 percentage that the first letter in a category gets picked
+	monoRate: 20, // 0-100 percentage that a given word is monosyllabic
+	slowSylDrop: false, // Do we slow the multisyllabic dropoff?
+	showSyls: false, // Do we show syllable breaks?
+	oneType: true, // Is there only one type of syllable?
+	overrides: { // Advanced option overrides for some of the above
+		dropoff: 0, // overrides dropoff
+		monoRate: 0, // overrides monoRate
+		sylRate: 0, // overrides slowSylDrop and related code
+		total: false, // allows overriding everything on a per-item basis
+		cue: ">", // marks where the override begins
+		sep: ",", // marks where override values separate
+		categories: null, // used to store per-category overrides
+		midWordSyls: null, // used to store per-syllable overrides
+		wordInitSyls: null, // used to store per-syllable overrides
+		wordFinalSyls: null, // used to store per-syllable overrides
+		singleWordSyls: null, // used to store per-syllable overrides
+		flags: { // notes when a per-syllable override has been fully processed
+			midWordSyls: false,
+			wordInitSyls: false,
+			wordFinalSyls: false,
+			singleWordSyls: false
+		}
+	}
 };
 
 // Helper functions to streamline some often-used function calls.
@@ -70,18 +89,42 @@ function escapeHTML(html) {
 
 // Trim elements of whitespace and remove blank elements from given array.
 function parseSyllables(input) {
-	var output = [];
+	var output = [],
+		overrideObject = $WG.overrides,
+		total = overrideObject.total,
+		patterns = input.split(/\r?\n/),
+		rates = total ? [] : null,
+		lastRate = overrideObject.sylRate || calcDropoff(input.length);
 	// Split input by linebreaks and then go through each element one by one.
-	input.split(/\r?\n/).forEach(function(t) {
+	patterns.forEach(function(t) {
 		// Remove whitespace.
 		var trimmed = t.trim();
-		// If there is still a string there, add it to the temp array.
-		if (trimmed !== "") {
-			output.push(trimmed);
+		if(trimmed === "") {
+			// No string? Skip!
+			return;
+		} else if (total) {
+			// Look for dropoff rate, if needed
+			let [text, rateString] = trimmed.split(overrideObject.cue);
+			trimmed = text.trim();
+			if(trimmed === "") {
+				// No string? Skip!
+				return;
+			}
+			if(!rateString || !(rateString = rateString.trim())) {
+				rates.push(lastRate);
+			} else {
+				let newRate = validatePercentage(rateString, lastRate);
+				lastRate = newRate;
+				rates.push(newRate);
+			}
 		}
+		output.push(trimmed);
 	});
 	// Return the good info.
-	return output;
+	return {
+		syllables: output,
+		ratesFound: rates
+	};
 }
 
 function handleCategoriesInRewriteRule(rule) {
@@ -159,12 +202,6 @@ function applyRewriteRules(input) {
 	return input;
 }
 
-// Calculate a random percentage from 0% to 100%.
-function getRandomPercentage() {
-	// Math.random never returns 1, so 101 is never returned. (However, it CAN return 0!)
-	return Math.floor(Math.random() * 101);
-}
-
 // Cheap iterative implementation of a power law:
 //   Returns a number from 0 to max, favoring the lower end.
 //   1) Counter starts at zero, and we grab a random percentage.
@@ -175,7 +212,7 @@ function powerLaw(max, pct) {
 	var randomP;
 	for (randomP = 0; true; randomP = (randomP + 1) % max) {
 		// The 'true' in there means this loop never ends on its own.
-		if (getRandomPercentage() < pct) {
+		if (Math.floor(Math.random() * 101) < pct) {
 			return randomP;
 		}
 	}
@@ -197,26 +234,32 @@ function oneSyllable(word, syllableBoxChoice) {
 	// Choose the pattern
 	var pattern = syllPatternPick(syllableBoxChoice),
 		catt = $WG.categories,
-		dropoff = $WG.dropoff,
-		counter,
-		theCat,
-		randomNum,
-		pattFound;
+		o = $WG.overrides,
+		override = o.total,
+		dropoff = o.dropoff || $WG.dropoff,
+		counter;
 
 	// For each letter in the pattern, find the category
 	for (counter = 0; counter < pattern.length; counter++) {
-		pattFound = pattern.charAt(counter);
-		theCat = catt.get(pattFound);
+		let categoryName = pattern.charAt(counter),
 		// Go find it in the categories list
+			theCat = catt.get(categoryName);
 		if (theCat === undefined) {
 			// Not found: output syllable directly
-			word += pattFound;
+			word += categoryName;
 		} else {
+			let catLength = theCat.length,
+				randomNum = -1;
 			// Get a random letter from the category
-			if (dropoff === 0) {
-				randomNum = Math.random() * theCat.length;
-			} else {
-				randomNum = powerLaw(theCat.length, dropoff);
+			if(override) {
+				randomNum = handleInlineCategoryDropoffRate(categoryName, catLength, dropoff);
+			}
+			if(randomNum === -1) {
+				if (dropoff === 0) {
+					randomNum = Math.random() * catLength;
+				} else {
+					randomNum = powerLaw(catLength, dropoff);
+				}
 			}
 			// Add it to the word
 			word += theCat.charAt(randomNum);
@@ -229,29 +272,93 @@ function oneSyllable(word, syllableBoxChoice) {
 
 // Choose a syllable pattern from the appropriate collection of syllables.
 function syllPatternPick(syllableBoxChoice) {
-	var numberOfSyllables, syllables;
+	var overrideObject = $WG.overrides,
+		numberOfSyllables, syllables, prop;
 	switch (syllableBoxChoice) {
 		case -1:
 			// First syllable
-			syllables = $WG.wordInitSyls;
+			prop = "wordInitSyls";
 			break;
 		case 0:
 			// Middle syllable
-			syllables = $WG.midWordSyls;
+			prop = "midWordSyls";
 			break;
 		case 1:
 			// Last syllable
-			syllables = $WG.wordFinalSyls;
+			prop = "wordFinalSyls";
 			break;
 		case 2:
 			// Only syllable
-			syllables = $WG.singleWordSyls;
+			prop = "singleWordSyls";
 			break;
 	}
-	// Save this for speed.
+	if(overrideObject.total) {
+		return inlineSyllableRatePicker(prop);
+	}
+	// Save these for speed.
+	syllables = $WG[prop];
 	numberOfSyllables = syllables.length;
 	// Use powerLaw() and calcDropoff() to determine which syllable in the collection to pick.
-	return syllables[powerLaw(numberOfSyllables, calcDropoff(numberOfSyllables))];
+	return syllables[powerLaw(numberOfSyllables, overrideObject.sylRate || calcDropoff(numberOfSyllables))];
+}
+
+function inlineSyllableRatePicker(prop) {
+	var syllables = $WG[prop],
+		length = syllables.length,
+		lastRate = 12,
+		overrideObject = $WG.overrides,
+		rates = overrideObject[prop],
+		pos;
+	if(!overrideObject.flags[prop]) {
+		rates = rates.map(function(rate) {
+			if(!rate) {
+				return lastRate;
+			}
+			lastRate = rate;
+			return rate;
+		});
+		while(rates.length < length) {
+			rates.push(lastRate);
+		}
+		if(rates.length > length) {
+			rates = rates.slice(0, length);
+		}
+		overrideObject.flags[prop] = true;
+	}
+	for(pos = 0; true; pos = (pos + 1) % length) {
+		// The 'true' means this loop doesn't end on its own.
+		if (Math.floor(Math.random() * 101) < rates[pos]) {
+			return syllables[pos];
+		}
+	}
+}
+
+function handleInlineCategoryDropoffRate(categoryName, categoryLength, baseDropoff) {
+	var temp = baseDropoff,
+		dropoffs = $WG.overrides.categories.get(categoryName);
+	if(!dropoffs) {
+		return -1;
+	}
+	// Validate all rates as being from 1-99%, replacing those that don't pass
+	dropoffs = dropoffs.map(function(rate) {
+		if(rate < 1 || rate > 99) {
+			rate = temp;
+		}
+		temp = rate;
+		return rate;
+	});
+	while(dropoffs.length < categoryLength) {
+		dropoffs.push(temp);
+	}
+	if(dropoffs.length > categoryLength) {
+		dropoffs = dropoffs.slice(0, categoryLength);
+	}
+	for(pos = 0; true; pos = (pos + 1) % categoryLength) {
+		// The 'true' means this loop doesn't end on its own.
+		if (Math.floor(Math.random() * 101) < dropoffs[pos]) {
+			return pos;
+		}
+	}
 }
 
 // Output a single word
@@ -259,11 +366,11 @@ function getOneWord(capitalize) {
 	var numberOfSyllables = 1,
 		currentSyllable,
 		syllableBoxChoice,
-		monoRate = $WG.monoRate,
+		monoRate = $WG.overrides.monoRate || $WG.monoRate,
 		oneType = $WG.oneType,
 		word = "";
 	// Determine if we're making a one-syllable word.
-	if ((Math.random() * 101) >= monoRate) {
+	if (Math.floor(Math.random() * 101) > monoRate) {
 		// We've got word with 2-6 syllables.
 		numberOfSyllables += 1 + powerLaw(4, 50);
 	}
@@ -374,7 +481,7 @@ function createLongLex() {
 
 // Pull a number from the Advanced Options, making sure it's a positive number less than max.
 function getAdvancedNumber(id, normal, max) {
-	var testValue = parseInt(id.value);
+	var testValue = Math.floor(Number(id.value));
 	if (isNaN(testValue) || testValue < 1) {
 		// Outside the lower bound. Return a "normal" number.
 		return normal;
@@ -447,10 +554,43 @@ function recurseCategoriesForSyllables(givenSet, input, toGo) {
 }
 
 
+function validatePercentage(percentage, defaultPercentage = 0, max = 99, min = 0) {
+	var test = Math.min(Math.max(Number(percentage), min), max);
+	if (test !== test) {
+		// (NaN !== NaN is always true)
+		return defaultPercentage;
+	}
+	return test;
+}
+
+
+function checkOverrides() {
+	var o = $WG.overrides,
+		inline = !!$i("inlineDropoffOverride").checked;
+	o.dropoff = validatePercentage($i("dropoffOverride").value);
+	o.monoRate = validatePercentage($i("monoRateOverride").value);
+	o.slowSylDrop = validatePercentage($i("slowSylDropOverride").value);
+	o.total = inline;
+	if(inline) {
+		o.cue = $i("inlineDropoffOverrideCue").value || ">";
+		o.sep = $i("inlineDropoffOverrideSep").value || ",";
+		o.categories = o.categories || new Map();
+		o.midWordSyls = o.midWordSyls || [];
+		o.wordInitSyls = o.wordInitSyls || [];
+		o.wordFinalSyls = o.wordFinalSyls || [];
+		o.singleWordSyls = o.singleWordSyls || [];
+	}
+}
+
+
 // User hit the action button.  Make things happen!
 function generate() {
 	var errorMessages = [],
 		catt = $WG.categories,
+		overrides = $WG.overrides,
+		previous = $WG.previous,
+		overridden,
+		overrideChanged,
 		whichWay,
 		input,
 		splitter,
@@ -465,43 +605,39 @@ function generate() {
 	$WG.slowSylDrop = $i("slowSylDrop").checked; // Do we (somewhat) flatten out the syllable dropoff?
 	oneType = $i("oneType").checked; // Are we only using one syllable box?
 	$WG.oneType = oneType;
-	monoRate = Number($q("input[type=radio][name=monoRate]:checked").value); // The rate of monosyllable words.
-	dropoff = Number($q("input[type=radio][name=dropoff]:checked").value); // How fast do the category runs flatten out?
+	monoRate = $q("input[type=radio][name=monoRate]:checked").value; // The rate of monosyllable words.
+	dropoff = $q("input[type=radio][name=dropoff]:checked").value; // How fast do the category runs flatten out?
 
 	// Validate monosyllable selector.
 	// If monoRate isn't set or is bigger than 100 (neither should be possible), change it to 100.
 	// If monoRate is less than 0 (shouldn't be possible), change it to 0.
-	monoRate = Math.min(Math.max(monoRate, 0), 100);
-	if (monoRate !== monoRate) {
-		// (NaN !== NaN is always true)
-		monoRate = 100;
-	}
 	// Save to global
-	$WG.monoRate = monoRate;
+	$WG.monoRate = validatePercentage(monoRate, 100, 100);
 
 	// Validate dropoff selector.
 	// If dropoff isn't set or is bigger than 45 (neither should be possible), change it to 45.
 	// If dropoff is less than 0 (shouldn't be possible), change it to 0.
-	dropoff = Math.min(Math.max(dropoff, 0), 45);
-	if (dropoff !== dropoff) {
-		// (NaN !== NaN is always true)
-		dropoff = 45;
-	}
-	// Save to global
-	$WG.dropoff = dropoff;
+	$WG.dropoff = validatePercentage(dropoff, 45, 45);
+
+	// Check for overrides
+	checkOverrides();
+	overridden = overrides.total;
+	overrideChanged = (overridden !== previous.overrides);
+	previous.overrides = overridden;
 
 	// Parse all those boxes for validness.
 
 	// Grab the category list.
 	input = $i("categories").value;
 	// If the categories have changed, parse them.
-	if (input !== $WG.previous.categories) {
+	if (overrideChanged || input !== previous.categories) {
 		let testing = parseCategories(input);
 		// If we found no errors, save the categories.
 		if (testing.flag && testing.cats.size > 0) {
-			$WG.previous.categories = input;
+			previous.categories = input;
 			$WG.categories = testing.cats;
 			catt = testing.cats;
+			overrides.categories = testing.rates;
 		} else {
 			errorMessages.push(...testing.msgs);
 			catt = false;
@@ -511,27 +647,43 @@ function generate() {
 	// Parse the syllable lists.
 	// Check each one to see if it's changed, first.
 	input = $i("midWord").value;
-	if (input !== $WG.previous.midWordSyls) {
-		$WG.midWordSyls = parseSyllables(input);
-		$WG.previous.midWordSyls = input;
+	if (overrideChanged || input !== previous.midWordSyls) {
+		let output;
+		overrides.flags.midWordSyls = false;
+		output = parseSyllables(input);
+		$WG.midWordSyls = output.syllables;
+		previous.midWordSyls = input;
+		overridden && (overrides.midWordSyls = output.ratesFound);
 	}
 
 	input = $i("wordInitial").value;
-	if (input !== $WG.previous.wordInitSyls) {
-		$WG.wordInitSyls = parseSyllables(input);
-		$WG.previous.wordInitSyls = input;
+	if (overrideChanged || input !== previous.wordInitSyls) {
+		let output;
+		overrides.flags.wordInitSyls = false;
+		output = parseSyllables(input);
+		$WG.wordInitSyls = output.syllables;
+		previous.wordInitSyls = input;
+		overridden && (overrides.wordInitSyls = output.ratesFound);
 	}
 
 	input = $i("wordFinal").value;
-	if (input !== $WG.previous.wordFinalSyls) {
-		$WG.wordFinalSyls = parseSyllables(input);
-		$WG.previous.wordFinalSyls = input;
+	if (overrideChanged || input !== previous.wordFinalSyls) {
+		let output;
+		overrides.flags.wordFinalSyls = false;
+		output = parseSyllables(input);
+		$WG.wordFinalSyls = output.syllables;
+		previous.wordFinalSyls = input;
+		overridden && (overrides.wordFinalSyls = output.ratesFound);
 	}
 
 	input = $i("singleWord").value;
-	if (input !== $WG.previous.singleWordSyls) {
-		$WG.singleWordSyls = parseSyllables(input);
-		$WG.previous.singleWordSyls = input;
+	if (overrideChanged || input !== previous.singleWordSyls) {
+		let output;
+		overrides.flags.singleWordSyls = false;
+		output = parseSyllables(input);
+		$WG.singleWordSyls = output.syllables;
+		previous.singleWordSyls = input;
+		overridden && (overrides.singleWordSyls = output.ratesFound);
 	}
 
 	// Check that categories exist.
@@ -549,7 +701,7 @@ function generate() {
 		// Find the splitter. (|| by default)
 		splitter = $i("rewSep").value;
 		// If the rules have changed, parse them.
-		if ($WG.previous.rew !== input || splitter !== $WG.rewSep) {
+		if (previous.rew !== input || splitter !== $WG.rewSep) {
 			let testing;
 			// Save the separator
 			$WG.rewSep = splitter;
@@ -557,7 +709,7 @@ function generate() {
 			testing = parseRewriteRules(input);
 			// If we found no errors, save the rules.
 			if (testing.flag) {
-				$WG.previous.rew = input;
+				previous.rew = input;
 				//// nrew === 0 is ok: sometimes you don't need to rewrite anything.
 				//nrew = testing.len;
 				$WG.rew = testing.rules;
@@ -627,74 +779,95 @@ function generate() {
 }
 
 // Test potential catgories to make sure they're formatted correctly.
-function parseCategories(testcats) {
-	var potentials = testcats.split(/\r?\n/),
+function parseCategories(testCategories) {
+	var potentials = testCategories.split(/\r?\n/),
 		// Set up an object for all categories.
 		// Hold on to the number of categories.
 		// Set up an index for the categories.
-		newcats = new Map(),
+		newCategories = new Map(),
 		// Hold error messages.
-		msgs = [],
+		errorMessages = [],
+		// Hold category dropoff rates, if needed,
+		rates = new Map(),
 		// Go through each category one at a time
 		// Make sure categories have structure like V=aeiou
 		tester = potentials.every(function(element) {
-			// Remove whitespace from element.
-			var thiscat = element.trim();
-			// Lock up the length of this category.
-			const len = thiscat.length;
+				// Remove whitespace from element.
+			var thisCategoryString = element.trim(),
+				// Lock up the length of this category.
+				len = thisCategoryString.length,
+				overrideObject = $WG.overrides;
 			if (len === 0) {
-				// Blank category. Ignore this.
-				//newcats.length--;
-			} else if (
-				len < 3 ||
-				thiscat.indexOf("=") !== 1 ||
-				thiscat.indexOf("=", 2) !== -1
-			) {
+				// Blank category. Ignore this and continue the loop.
+				return true;
+			} else if (overrideObject.total) {
+				// Check for inline rates
+				var [text, rateString] = thisCategoryString.split(overrideObject.cue);
+				thisCategoryString = text.trim();
+				if(rateString) {
+					// Assign to the Map using the category string as key and an Array of Numbers as value
+					rates.set("temp", rateString.trim().split(overrideObject.sep).map(p => validatePercentage(p)));
+				}
+			}
+			if (
 				// If the category doesn't have at least three characters...
+				len < 3 ||
 				//  OR the category doesn't have = as its second character...
+				thisCategoryString.indexOf("=") !== 1 ||
 				//  OR the category has = somewhere else other than the second character...
+				thisCategoryString.indexOf("=", 2) !== -1 // (is this necessary?)****************************
+			) {
 				// THEN this is a bad category.
 				let frag = $f();
 				frag.append(
 					$e("strong", "Error:"),
-					$WG.SPACE + thiscat,
+					$WG.SPACE + thisCategoryString,
 					$e("br"),
 					"Categories must be of the form V=aeiou",
 					$e("br"),
 					"That is, a single letter, an equal sign, then a list of possible expansions."
 				);
-				msgs.push(frag);
+				errorMessages.push(frag);
+				// clear from rates if needed
+				overrideObject.total && rates.delete("temp");
 				// End the looping.
 				return false;
 			} else {
 				// Isolate the category name.
-				let cname = thiscat.charAt(0);
-				if (newcats.get(cname) !== undefined) {
+				let categoryName = thisCategoryString.charAt(0);
+				if (newCategories.get(categoryName) !== undefined) {
 					// If we have defined this category before, throw an error.
 					let frag = $f();
 					frag.append(
 						$e("strong", "Error:"),
-						$WG.SPACE + "You have defined category " + thiscat + " more than once."
+						$WG.SPACE + "You have defined category " + thisCategoryString + " more than once."
 					);
-					msgs.push(frag);
+					errorMessages.push(frag);
 					return false;
 				} else {
 					//// Add this category to the category index.
-					//newcats.index += cname;
+					//newcats.index += categoryName;
 					// Save this category info.
-					//newcats[cname] = thiscat.substring(2);
-					newcats.set(cname, thiscat.substring(2));
+					//newcats[categoryName] = thisCategoryString.substring(2);
+					newCategories.set(categoryName, thisCategoryString.substring(2));
+				}
+				// Solidify the override rates, if needed
+				if(overrideObject.total) {
+					rates.set(categoryName, rates.get("temp"));
+					rates.delete("temp");
 				}
 			}
 			// Continue the loop.
 			return true;
 		});
 	// Return an object where FLAG indicates if the input was formatted correctly,
-	//   CATS is the formatted categories, and MSGS are any error messages.
+	//   CATS is the formatted categories, MSGS are any error messages, and RATES
+	//   is an optional set of dropoff rates for the categories
 	return {
 		flag: tester,
-		cats: newcats,
-		msgs: msgs
+		cats: newCategories,
+		errorMessages: errorMessages,
+		rates: rates.size > 0 ? rates : null
 	};
 }
 
@@ -821,7 +994,7 @@ function clearBoxes() {
 // Simple function sets up the import/export screen.
 function prepImport(msg) {
 	// Check if we were called by an event listener.
-	if (typeof msg != "string") {
+	if (typeof msg !== "string") {
 		// Hide all messaging.
 		$a("#importBoxArea .msg").forEach(m => m.classList.add("hidden"));
 	} else {
@@ -836,7 +1009,7 @@ function prepImport(msg) {
 			m.classList.remove("hidden");
 		});
 	}
-	// Mark are as "open".
+	// Mark area as "open".
 	$i("importBoxArea").classList.remove("closed");
 	// Freeze the main display.
 	document.body.classList.add("noOverflow");
@@ -844,101 +1017,64 @@ function prepImport(msg) {
 
 // Simple function clears input/export box and removes that screen.
 function removeImportBox() {
+	var box = $i("importTextBox");
 	// Clear box.
-	$i("importTextBox").value = "";
+	box.value = "";
+	// Make it writable if needed
+	box.disabled = false;
 	// "Close" box.
 	$i("importBoxArea").classList.add("closed");
+	// Show the Import button if needed
+	$i("doImportButton").classList.remove("hidden");
 	// Unfreeze main display.
 	document.body.classList.remove("noOverflow");
 }
 
 // Parse input to import.
 // Also used to load and verify predefs.
-function doImport(
-	toImport,
-	testing = false,
-	loud = true
-) {
-	// The imported info must match the following pattern.
-	var patt = new RegExp(
-			"--CATEGORIES--\\n([\\s\\S]*)\\n" + // 1
-			"--REWRITE--\\n([\\s\\S]*)\\n" +    // 2
-			"--MONO--\\n([\\s\\S]*)\\n" +       // 3
-			"--MID--\\n([\\s\\S]*)\\n" +        // 4
-			"--INIT--\\n([\\s\\S]*)\\n" +       // 5
-			"--FINAL--\\n([\\s\\S]*)\\n" +      // 6
-			"--FLAGS--\\n([01]) ([01]) ([^ ]+) ([^ \\n]+)" + // 7, 8, 9, 10
-			"(\\n--ADVANCED--\\n" + // 11 is an optional supergrouping
-			"([0-9]+)\\n" + // 12 (word length in ems)
-			"([0-9]+)\\n" + // 13 (lexicon length)
-			"([0-9]+)\\n" + // 14 (large lexicon length)
-			"([0-9]+)\\n" + // 15 (sentences in a pseudo-text)
-			"([^\\n]+)" +   // 16 (separator used in rewrite rules)
-				")?"              // end supergrouping
-		),
-		m;
+function doImport(toImport, calledInternally = false) {
+	var parsed = toImport;
 	// If this is called by an event, then toImport needs to be set to the import box's information.
-	if (typeof toImport != "string") {
+	if (!calledInternally) {
 		toImport = $i("importTextBox").value.trim();
-	}
-	// Execute pattern check!
-	m = patt.exec(toImport);
-	// if testing is provided and true, then merely check the info for correct formatting and return false/true.
-	if (testing) {
-		if (m === null) {
-			// Predef did not load correctly.
-			console.log("Incorrect predef format.");
-			return false;
-		}
-		// Predef DID load correctly.
-		return true;
-	}
-	// If the provided info was not in the correct format, stop here.
-	if (m === null) {
-		// If loud is not provided, or provided and true, then give the user a pop-up error message.
-		if (loud) {
-			console.log(m);
-			console.log(patt);
-			console.log(toImport);
-			return doAlert("Incorrect format.", "", "error");
-		} else {
-			return false;
+		try {
+			parsed = JSON.parse(toImport);
+		} catch(error) {
+			console.log(error);
+			return calledInternally ? false : doAlert("Bad Format","The information provided was malformed and could not be read.","error");
 		}
 	}
-	// Apply imported info to the boxes and checkboxes.
-	$i("categories").value = m[1];
-	$i("rewrite").value = m[2];
-	$i("singleWord").value = m[3];
-	$i("midWord").value = m[4];
-	$i("wordInitial").value = m[5];
-	$i("wordFinal").value = m[6];
-	$i("oneType").checked = m[7] !== "0";
-	$i("slowSylDrop").checked = m[8] !== "0";
-	$i(m[9]).checked = true;
-	$i(m[10]).checked = true;
-	// Check for Advanced Options.
-	if (m.length > 12 && m[11] !== undefined) {
-		let counter = 12;
-		// 12 through 15 are numeric values. Verify this.
-		while (counter < 16) {
-			// Convert string to a number.
-			let test = Number(m[counter]);
-			// Non-numbers, non-integers and non-positive numbers are changed to 1.
-			if (!Number.isInteger(test) || test < 1) {
-				m[counter] = "1";
-			}
-			counter++;
-		}
-		$i("wordLengthInEms").value = m[12];
-		$i("lexiconLength").value = m[13];
-		$i("largeLexiconLength").value = m[14];
-		$i("sentences").value = m[15];
-		$i("rewSep").value = m[16];
+// Apply imported info to the boxes and checkboxes.
+	try {
+		$i("categories").value = parsed.categories || $i("categories").value;
+		$i("rewrite").value = parsed.rewrite || $i("rewrite").value;
+		$i("singleWord").value = parsed.singleWord || $i("singleWord").value;
+		$i("midWord").value = parsed.midWord || $i("midWord").value;
+		$i("wordInitial").value = parsed.wordInitial || $i("wordInitial").value;
+		$i("wordFinal").value = parsed.wordFinal || $i("wordFinal").value;
+		$i(parsed.monoRate).checked = true;
+		$i(parsed.dropoff).checked = true;
+		$i("oneType").checked = !!parsed.oneType;
+		$i("slowSylDrop").checked = !!parsed.slowSylDrop;
+		$i("wordLengthInEms").value = parsed.wordLengthInEms || $i("wordLengthInEms").value;
+		$i("lexiconLength").value = parsed.lexiconLength || $i("lexiconLength").value;
+		$i("largeLexiconLength").value = parsed.largeLexiconLength || $i("largeLexiconLength").value;
+		$i("sentences").value = parsed.sentences || $i("sentences").value;
+		$i("rewSep").value = parsed.rewSep || $i("rewSep").value;
+		$i("dropoffOverride").value = parsed.dropoffOverride || $i("dropoffOverride").value;
+		$i("monoRateOverride").value = parsed.monoRateOverride || $i("monoRateOverride").value;
+		$i("slowSylDropOverride").value = parsed.slowSylDropOverride || $i("slowSylDropOverride").value;
+		$i("inlineDropoffOverride").checked = !!parsed.inlineDropoffOverride;
+		$i("inlineDropoffOverrideCue").value = parsed.inlineDropoffOverrideCue || $i("inlineDropoffOverrideCue").value;
+		$i("inlineDropoffOverrideSep").value = parsed.inlineDropoffOverrideSep || $i("inlineDropoffOverrideSep").value;
+	} catch(error) {
+		console.log(error);
+		return calledInternally ? false : doAlert("Bad Format","The information provided was malformed and could not be completely loaded.","error");
 	}
 	// Hide/show boxes if needed.
 	syllabicChangeDetection();
 	// Return true if predef loaded correctly.
-	if (!loud) {
+	if (calledInternally) {
 		return true;
 	}
 	doAlert("Import Successful!", "", "success");
@@ -948,99 +1084,95 @@ function doImport(
 }
 
 // Create an importable text file continaing all current info.
-function doExport(display = true) {
-	var toExport;
+function doExport(fromButton) {
+	var box, toExport;
 	// Check if we're checking for the default values.
-	if (display === null) {
-		let flag = true;
-		toExport =
-			"--CATEGORIES--\n" +
-			$i("categories").defaultValue +
-			"\n--REWRITE--\n" +
-			$i("rewrite").defaultValue +
-			"\n--MONO--\n" +
-			$i("singleWord").defaultValue +
-			"\n--MID--\n" +
-			$i("midWord").defaultValue +
-			"\n--INIT--\n" +
-			$i("wordInitial").defaultValue +
-			"\n--FINAL--\n" +
-			$i("wordFinal").defaultValue +
-			"\n--FLAGS--\n" +
-			($i("oneType").defaultChecked ? "1" : "0") +
-			" " +
-			($i("slowSylDrop").defaultChecked ? "1" : "0") +
-			" ";
-		$a("input[name=monoRate]").forEach(function(mr) {
-			if (flag && mr.defaultChecked) {
-				toExport += mr.getAttribute("id") + " ";
-				flag = false;
+	if (!fromButton) {
+		let mono, drop;
+		Array.from($a("input[name=\"monoRate\"]")).every(function(input) {
+			if(input.defaultChecked) {
+				mono = input.id;
+				return false;
 			}
+			return true;
 		});
-		flag = true;
-		$a("input[name=dropoff]").forEach(function(df) {
-			if (flag && df.defaultChecked) {
-				toExport += df.getAttribute("id");
-				flag = false;
+		Array.from($a("input[name=\"dropoff\"]")).every(function(input) {
+			if(input.defaultChecked) {
+				drop = input.id;
+				return false;
 			}
+			return true;
 		});
-		return toExport;
+		return {
+			categories: $i("categories").defaultValue,
+			rewrite: $i("rewrite").defaultValue,
+			singleWord: $i("singleWord").defaultValue,
+			midWord: $i("midWord").defaultValue,
+			wordInitial: $i("wordInitial").defaultValue,
+			wordFinal: $i("wordFinal").defaultValue,
+			oneType: $i("oneType").defaultChecked,
+			slowSylDrop: $i("slowSylDrop").defaultChecked,
+			monoRate: mono,
+			dropoff: drop,
+			wordLengthInEms: $i("wordLengthInEms").defaultValue,
+			lexiconLength: $i("lexiconLength").defaultValue,
+			largeLexiconLength: $i("largeLexiconLength").defaultValue,
+			sentences: $i("sentences").defaultValue,
+			rewSep: $i("rewSep").defaultValue,
+			dropoffOverride: $i("dropoffOverride").defaultValue,
+			monoRateOverride: $i("monoRateOverride").defaultValue,
+			slowSylDropOverride: $i("slowSylDropOverride").defaultValue,
+			inlineDropoffOverride: $i("inlineDropoffOverride").defaultChecked,
+			inlineDropoffOverrideCue: $i("inlineDropoffOverrideCue").defaultValue,
+			inlineDropoffOverrideSep: $i("inlineDropoffOverrideSep").defaultValue,
+		};
 	}
-	toExport =
-		"--CATEGORIES--\n" +
-		$i("categories").value +
-		"\n--REWRITE--\n" +
-		$i("rewrite").value +
-		"\n--MONO--\n" +
-		$i("singleWord").value +
-		"\n--MID--\n" +
-		$i("midWord").value +
-		"\n--INIT--\n" +
-		$i("wordInitial").value +
-		"\n--FINAL--\n" +
-		$i("wordFinal").value +
-		"\n--FLAGS--\n" +
-		($i("oneType").checked ? "1" : "0") +
-		" " +
-		($i("slowSylDrop").checked ? "1" : "0") +
-		" " +
-		$q("input[name=monoRate]:checked").getAttribute("id") +
-		" " +
-		$q("input[name=dropoff]:checked").getAttribute("id");
-	// Check if we're loading custom content.
-	if (!display) {
-		return toExport;
-	}
-	toExport +=
-		"\n--ADVANCED--\n" +
-		$i("wordLengthInEms").value +
-		"\n" +
-		$i("lexiconLength").value +
-		"\n" +
-		$i("largeLexiconLength").value +
-		"\n" +
-		$i("sentences").value +
-		"\n" +
-		$i("rewSep").value;
+	toExport = {
+		categories: $i("categories").value,
+		rewrite: $i("rewrite").value,
+		singleWord: $i("singleWord").value,
+		midWord: $i("midWord").value,
+		wordInitial: $i("wordInitial").value,
+		wordFinal: $i("wordFinal").value,
+		oneType: $i("oneType").checked,
+		slowSylDrop: $i("slowSylDrop").checked,
+		monoRate: $q("input[name=monoRate]:checked").getAttribute("id"),
+		dropoff: $q("input[name=dropoff]:checked").getAttribute("id"),
+		wordLengthInEms: $i("wordLengthInEms").value,
+		lexiconLength: $i("lexiconLength").value,
+		largeLexiconLength: $i("largeLexiconLength").value,
+		sentences: $i("sentences").value,
+		rewSep: $i("rewSep").value,
+		dropoffOverride: $i("dropoffOverride").value,
+		monoRateOverride: $i("monoRateOverride").value,
+		slowSylDropOverride: $i("slowSylDropOverride").value,
+		inlineDropoffOverride: $i("inlineDropoffOverride").checked,
+		inlineDropoffOverrideCue: $i("inlineDropoffOverrideCue").value,
+		inlineDropoffOverrideSep: $i("inlineDropoffOverrideSep").value,
+	};
+	box = $i("importTextBox");
 	// Put the info in the box.
-	$i("importTextBox").value = toExport;
+	box.value = JSON.stringify(toExport);
+	// Mark as unwritable
+	box.disabled = true;
+	// Hide the Import button
+	$i("doImportButton").classList.add("hidden");
 	// Show the box (and everything else) with instructions.
-	prepImport(
-		"Copy this for your own records.<br><br>Hit 'Cancel' when you're done."
-	);
+	prepImport("Copy this for your own records.<br><br>Hit 'Cancel' when you're done.");
 }
 
 // Save current info to the browser, if possible.
 function saveCustom(test) {
-	var predef = $i("predef");
-	if (!$WG.Customizable) {
+	var predef = $i("predef"),
+		info = {};
+	if (!$WG.customizable) {
 		doAlert(
 			"",
 			"Your browser does not support Local Storage and cannot save your information.",
 			"error"
 		);
 		return;
-	} else if ($WG.CustomInfo && test !== true) {
+	} else if ($WG.customInfo && test !== true) {
 		return doConfirm(
 			"Warning!",
 			"You already have information saved. Do you want to overwrite it?",
@@ -1059,34 +1191,34 @@ function saveCustom(test) {
 			"No"
 		);
 	}
-	localStorage.setItem("CustomCategories", $i("categories").value);
-	localStorage.setItem("CustomRewrite", $i("rewrite").value);
-	localStorage.setItem("CustomSingleWord", $i("singleWord").value);
-	localStorage.setItem("CustomMidWord", $i("midWord").value);
-	localStorage.setItem("CustomInitial", $i("wordInitial").value);
-	localStorage.setItem("CustomFinal", $i("wordFinal").value);
-	localStorage.setItem("CustomOneType", $i("oneType").checked);
-	localStorage.setItem("CustomSlowSylDrop", $i("slowSylDrop").checked);
-	localStorage.setItem(
-		"CustomMono",
-		$q("input[name=monoRate]:checked").getAttribute("id")
-	);
-	localStorage.setItem(
-		"CustomDropoff",
-		$q("input[name=dropoff]:checked").getAttribute("id")
-	);
-	localStorage.setItem("CustomWordLengthInEms", $i("wordLengthInEms").value);
-	localStorage.setItem("CustomLexiconLength", $i("lexiconLength").value);
-	localStorage.setItem(
-		"CustomLargeLexiconLength",
-		$i("largeLexiconLength").value
-	);
-	localStorage.setItem("CustomSentences", $i("sentences").value);
-	localStorage.setItem("CustomRewSep", $i("rewSep").value);
-	$WG.CustomInfo = true;
+	info = {
+		categories: $i("categories").value,
+		rewrite: $i("rewrite").value,
+		singleWord: $i("singleWord").value,
+		midWord: $i("midWord").value,
+		wordInitial: $i("wordInitial").value,
+		wordFinal: $i("wordFinal").value,
+		oneType: $i("oneType").checked,
+		slowSylDrop: $i("slowSylDrop").checked,
+		monoRate: $q("input[name=monoRate]:checked").getAttribute("id"),
+		dropoff: $q("input[name=dropoff]:checked").getAttribute("id"),
+		wordLengthInEms: $i("wordLengthInEms").value,
+		lexiconLength: $i("lexiconLength").value,
+		largeLexiconLength: $i("largeLexiconLength").value,
+		sentences: $i("sentences").value,
+		rewSep: $i("rewSep").value,
+		dropoffOverride: $i("dropoffOverride").value,
+		monoRateOverride: $i("monoRateOverride").value,
+		slowSylDropOverride: $i("slowSylDropOverride").value,
+		inlineDropoffOverride: $i("inlineDropoffOverride").checked,
+		inlineDropoffOverrideCue: $i("inlineDropoffOverrideCue").value,
+		inlineDropoffOverrideSep: $i("inlineDropoffOverrideSep").value,
+	};
+	localStorage.setItem("WordGenCustomOption", JSON.stringify(info));
+	$WG.customInfo = true;
 
 	// Check for the "Custom" predef option and add it if needed.
-	if ($q('option[value="pd-1"]', predef) == null) {
+	if ($q('option[value="pd-1"]', predef) === null) {
 		let option = document.createElement("option");
 		option.value = "pd-1";
 		option.textContent = "Custom";
@@ -1095,24 +1227,24 @@ function saveCustom(test) {
 	// Set predef drop-down to Custom.
 	predef.value = "pd-1";
 	// Save predef info.
-	$WG.predefs.set("pd-1", doExport(false));
+	$WG.predefs.set("pd-1", info);
 	// Alert success.
 	doAlert("Saved to browser.", "", "success");
 }
 
 // Remove stored information from the browser.
 function clearCustom(test) {
-	if (!$WG.Customizable) {
+	if (!$WG.customizable) {
 		doAlert(
 			"Sorry!",
 			"Your browser does not support Local Storage and cannot save your information.",
 			"error"
 		);
 		return;
-	} else if (!$WG.CustomInfo) {
+	} else if (!$WG.customInfo) {
 		doAlert("", "You don't have anything saved.", "error");
 		return;
-	} else if ($WG.CustomInfo && test !== true) {
+	} else if ($WG.customInfo && test !== true) {
 		return doConfirm(
 			"Warning!",
 			"Are you sure you want to delete your saved settings?",
@@ -1127,27 +1259,8 @@ function clearCustom(test) {
 			"No"
 		);
 	}
-	// Clear storage.
-	[
-		"CustomCategories",
-		"CustomRewrite",
-		"CustomSingleWord",
-		"CustomMidWord",
-		"CustomInitial",
-		"CustomFinal",
-		"CustomOneType",
-		"CustomSlowSylDrop",
-		"CustomMono",
-		"CustomDropoff",
-		"CustomWordLengthInEms",
-		"CustomLexiconLength",
-		"CustomLargeLexiconLength",
-		"CustomSentences",
-		"CustomRewSep"
-	].forEach(function(x) {
-		window.localStorage.removeItem(x);
-	});
-	$WG.CustomInfo = false;
+	window.localStorage.removeItem("WordGenCustomOption");
+	$WG.customInfo = false;
 	// Remove "Custom" from drop-down menu.
 	$q('#predef option[value="-1"]').remove();
 	// Remove info.
@@ -1172,69 +1285,67 @@ function advancedOptions() {
 function loadPredef() {
 	var pd = $i("predef").value;
 	console.log("Opening predef [" + pd + "]");
-	doImport($WG.predefs.get(pd), false, false);
+	doImport($WG.predefs.get(pd), true);
 	syllabicChangeDetection();
 }
 
 // Load predefs from file.
-$WG.getter.addEventListener("load", parseResult);
+$WG.getter.addEventListener("load", parsePredefsFromFile);
 $WG.getter.open("GET", $WG.predefFilename);
 $WG.getter.send();
 $i("loadPredefButton").disabled = true;
 $i("predef").disabled = true;
 // Save default info as "Starter"
-$WG.predefs.set("pd1", doExport(null));
+$WG.predefs.set("pd1", doExport(false));
 
 // Called async when predefs are being loaded
-function parseResult() {
+function parsePredefsFromFile() {
 	//console.log($WG.getter);
 	// Grab info.
-	var loaded = $WG.getter.responseText.trim().split(/\n--END--/),
-		counter = $WG.predefs.size + ($WG.predefs.get("pd-1") === undefined ? 0 : -1);
+	var response = $WG.getter.responseText.trim().split(/\r?\n/).join(""),
+		predefs = $WG.predefs,
+		counter = predefs.size + (predefs.get("pd-1") === undefined ? 0 : -1),
+		loaded;
+	try {
+		loaded = JSON.parse(response);
+		if(loaded.constructor !== Array) {
+			console.log("Predefs file was not in Array format.");
+			return false;
+		}
+	} catch (error) {
+		console.log(error);
+		console.log("Unable to parse predefs from file.");
+		return false;
+	}
 	// Store info.
 	loaded.forEach(function(p) {
-		// Info should start with a Name and a linebreak.
-		var rxe = p.trim().match(/^([^\r\n]+)\r?\n/);
-		if (rxe === null) {
-			console.log("Unable to parse predef name: " + p);
-		} else {
-			// Put the name in 'name' and the info in 'info'
-			let name = rxe[0].trim(),
-				info = p
-					.slice(rxe[0].length)
-					.replace(/\r/g, "")
-					.trim();
-			console.log("Testing predef: " + name);
-			// Send info off t be tested for validness
-			if (doImport(info, true)) {
-				// Test passed.
-				let target = $i("predef"),
-					opt = document.createElement("option"),
-					val = "pd";
-				// target is the <select> containing predefs.
-				// opt is a new <option> we're adding to it
-				console.log("Saving predef: " + name);
-				// Increase counter, generate a unique name.
-				counter++;
-				val += counter.toString();
-				// Save info internally.
-				$WG.predefs.set(val, info);
-				// Set properties of <option>
-				opt.textContent = name;
-				opt.value = val;
-				// Add <option> to <select>
-				target.appendChild(opt);
-			} else {
-				// Test failed.
-				console.log(info.replace(/\n/g, "\\n"));
-			}
+		// Info should have a name property.
+		var nombre, target, opt, val;
+		if(typeof p !== "object" || (nombre = p.name) === undefined || typeof nombre !== "string") {
+			console.log("Bad predef encountered - malformed object, or missing or malformed name property");
+			console.log(p);
+			return false;
 		}
+		// target is the <select> containing predefs.
+		target = $i("predef"),
+		// opt is a new <option> we're adding to it
+		opt = document.createElement("option"),
+		val = "pd";
+		console.log("Saving predef: " + nombre);
+		// Increase counter, generate a unique name.
+		counter++;
+		val += counter.toString();
+		// Save info internally.
+		predefs.set(val, p);
+		// Set properties of <option>
+		opt.textContent = nombre;
+		opt.value = val;
+		// Add <option> to <select>
+		target.appendChild(opt);
 	});
 	// Mark that we're no longer waiting.
 	$i("loadPredefButton").disabled = false;
 	$i("predef").disabled = false;
-	// if we're waiting for a new idea, print one now
-	// save the ideas for later use
 }
 
 // If the "one type of syllables" box is [un]checked, change which boxes are visible.
@@ -1253,37 +1364,37 @@ function syllabicChangeDetection() {
 
 // Check for localStorage.
 if (typeof Storage !== "undefined") {
+	let info = localStorage.getItem("WordGenCustomOption");
 	// Make this known to other functions.
-	$WG.Customizable = true;
+	$WG.customizable = true;
 	// Check if we have info stored. If so, load it up.
-	if (localStorage.getItem("CustomCategories") !== null) {
-		$WG.CustomInfo = true;
+	if (info !== null) {
+		$WG.customInfo = true;
 		// Set drop-down menu to the custom info.
 		let option = document.createElement("option"),
-			propTrue = [
-				localStorage.getItem("CustomMono"),
-				localStorage.getItem("CustomDropoff")
-			],
-			propFalse = [];
-		$i("categories").value = localStorage.getItem("CustomCategories");
-		$i("rewrite").value = localStorage.getItem("CustomRewrite");
-		$i("singleWord").value = localStorage.getItem("CustomSingleWord");
-		$i("midWord").value = localStorage.getItem("CustomMidWord");
-		$i("wordInitial").value = localStorage.getItem("CustomInitial");
-		$i("wordFinal").value = localStorage.getItem("CustomFinal");
-		if (localStorage.getItem("CustomOneType") === "true") {
-			propTrue.push("oneType");
-		} else {
-			propFalse.push("oneType");
-		}
-		if (localStorage.getItem("CustomSlowSylDrop") === "true") {
-			propTrue.push("slowSylDrop");
-		} else {
-			propFalse.push("slowSylDrop");
-		}
-		propTrue.forEach(box => ($i(box).checked = true));
-		propFalse.forEach(box => ($i(box).checked = false));
-		$WG.predefs.set("pd-1", doExport(false));
+			parsed = JSON.parse(info);
+		$i("categories").value = parsed.categories;
+		$i("rewrite").value = parsed.rewrite;
+		$i("singleWord").value = parsed.singleWord;
+		$i("midWord").value = parsed.midWord;
+		$i("wordInitial").value = parsed.wordInitial;
+		$i("wordFinal").value = parsed.wordFinal;
+		$i(parsed.monoRate).checked = true;
+		$i(parsed.dropoff).checked = true;
+		$i("oneType").checked = parsed.oneType;
+		$i("slowSylDrop").checked = parsed.slowSylDrop;
+		$i("wordLengthInEms").value = parsed.wordLengthInEms;
+		$i("lexiconLength").value = parsed.lexiconLength;
+		$i("largeLexiconLength").value = parsed.largeLexiconLength;
+		$i("sentences").value = parsed.sentences;
+		$i("rewSep").value = parsed.rewSep;
+		$i("dropoffOverride").value = parsed.dropoffOverride;
+		$i("monoRateOverride").value = parsed.monoRateOverride;
+		$i("slowSylDropOverride").value = parsed.slowSylDropOverride;
+		$i("inlineDropoffOverride").checked = parsed.inlineDropoffOverride;
+		$i("inlineDropoffOverrideCue").value = parsed.inlineDropoffOverrideCue;
+		$i("inlineDropoffOverrideSep").value = parsed.inlineDropoffOverrideSep;
+		$WG.predefs.set("pd-1", parsed);
 		option.value = "pd-1";
 		option.textContent = "Custom";
 		$i("predef").prepend(option);
@@ -1311,7 +1422,7 @@ $i("showIPAButton").addEventListener("click", showIPA);
 $i("loadPredefButton").addEventListener("click", loadPredef);
 $i("doImportButton").addEventListener("click", doImport);
 $i("removeImportBoxButton").addEventListener("click", removeImportBox);
-$i("doExportButton").addEventListener("click", doExport);
+$i("doExportButton").addEventListener("click", doExport.bind(null, true));
 
 // Use SweetAlert2 if available!
 function doAlert(title, text, type) {
